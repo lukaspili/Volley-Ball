@@ -5,15 +5,15 @@ import android.util.Log;
 /**
  * Created by lukas on 8/29/13.
  */
-public class AppLogger {
+public class SimpleLogger {
 
     // D
     public static void d(String string) {
-        Log.d(AppLogger.class.getName(), string);
+        Log.d(SimpleLogger.class.getName(), string);
     }
 
     public static void d(String string, Throwable tr) {
-        Log.d(AppLogger.class.getName(), string, tr);
+        Log.d(SimpleLogger.class.getName(), string, tr);
     }
 
     public static void d(String string, Object... args) {
@@ -27,11 +27,11 @@ public class AppLogger {
 
     // E
     public static void e(String string) {
-        Log.e(AppLogger.class.getName(), string);
+        Log.e(SimpleLogger.class.getName(), string);
     }
 
     public static void e(String string, Throwable tr) {
-        Log.e(AppLogger.class.getName(), string, tr);
+        Log.e(SimpleLogger.class.getName(), string, tr);
     }
 
     public static void e(String string, Object... args) {

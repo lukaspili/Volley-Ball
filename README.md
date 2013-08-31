@@ -48,3 +48,4 @@ In Volley Ball, a request is composed of two kind of "sub" request:
 	- what happens when request is finished from local dispatcher for example ?
 - local request only
 - several worker threads for local dispatcher
+- compatibility for adding volley request to the ball queue

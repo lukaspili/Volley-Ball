@@ -8,6 +8,7 @@ import com.android.volley.VolleyLog;
 import com.siu.android.volleyball.BallRequest;
 import com.siu.android.volleyball.BallResponse;
 import com.siu.android.volleyball.BallResponseDelivery;
+import com.siu.android.volleyball.util.BallLogger;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -75,7 +76,7 @@ public class LocalDispatcher extends Thread {
                 Object responseContent = request.getLocalRequestProcessor().getLocalResponse();
                 if(responseContent == null) {
                     request.addMarker("local-response-content-null-exit");
-                    return;
+                    continue;
                 }
 
                 BallResponse response = BallResponse.success(responseContent, null);

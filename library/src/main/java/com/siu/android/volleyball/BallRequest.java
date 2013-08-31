@@ -9,6 +9,7 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
+import com.siu.android.volleyball.exception.BallException;
 import com.siu.android.volleyball.local.LocalRequestProcessor;
 
 /**
@@ -33,17 +34,26 @@ public abstract class BallRequest<T> extends Request<T> {
     protected boolean finished = false;
 
 
-    protected BallRequest(int method, String url, Response.ErrorListener listener) {
-        super(method, url, listener);
+    protected BallRequest(int method, String url, Response.ErrorListener errorListener) {
+        super(method, url, errorListener);
+
+        if (shouldProcessLocal()) {
+            mLocalRequestProcessor = createLocalRequestProcessor();
+
+            if (mLocalRequestProcessor == null) {
+                throw new BallException("Request should process local but local request processor is not provided");
+            }
+        }
+
     }
 
     protected BallRequest(int method, String url, Response.Listener<T> listener, Response.ErrorListener errorListener) {
-        super(method, url, errorListener);
+        this(method, url, errorListener);
         mListener = listener;
     }
 
     protected BallRequest(int method, String url, BallResponse.ListenerWithLocalProcessing<T> listener, Response.ErrorListener errorListener) {
-        super(method, url, errorListener);
+        this(method, url, errorListener);
         mListenerWithLocalProcessing = listener;
     }
 

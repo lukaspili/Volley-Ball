@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.siu.android.volleyball.samples.Application;
 import com.siu.android.volleyball.samples.model.Entry;
-import com.siu.android.volleyball.samples.util.AppLogger;
+import com.siu.android.volleyball.samples.util.SimpleLogger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +18,7 @@ public class EntryDao {
 
     public static final List<Entry> getEntries() {
 
-        SQLiteDatabase db = Application.getDatabaseHelper().getWritableDatabase();
-        Cursor cursor = db.query(Entry.TABLE, Entry.COLUMNS, null, null, null, null, null);
+        Cursor cursor = Application.getSQLiteDatabase().query(Entry.TABLE, Entry.COLUMNS, null, null, null, null, null);
 
         cursor.moveToFirst();
         List<Entry> entries = new ArrayList<Entry>();
@@ -34,8 +33,6 @@ public class EntryDao {
             cursor.moveToNext();
         }
 
-        db.close();
-
         return entries;
     }
 
@@ -48,7 +45,6 @@ public class EntryDao {
                 ContentValues contentValues;
                 for (Entry entry : entries) {
                     contentValues = new ContentValues();
-                    contentValues.put(Entry.ID, entry.getId());
                     contentValues.put(Entry.TITLE, entry.getTitle());
 
                     db.insert(Entry.TABLE, null, contentValues);
@@ -62,32 +58,23 @@ public class EntryDao {
         contentValues.put(Entry.ID, entry.getId());
         contentValues.put(Entry.TITLE, entry.getTitle());
 
-        SQLiteDatabase db = Application.getDatabaseHelper().getWritableDatabase();
-        db.insert(Entry.TABLE, null, contentValues);
-
-        db.close();
+        Application.getSQLiteDatabase().insert(Entry.TABLE, null, contentValues);
     }
 
     public static void runInTransaction(DatabaseTransaction databaseTransaction) {
-        SQLiteDatabase db = Application.getDatabaseHelper().getWritableDatabase();
+        SQLiteDatabase db = Application.getSQLiteDatabase();
         db.beginTransaction();
         try {
             databaseTransaction.run(db);
             db.setTransactionSuccessful();
         } catch (Exception e) {
-            AppLogger.e("run in transaction error", e);
+            SimpleLogger.e("run in transaction error", e);
         } finally {
             try {
                 db.endTransaction();
             } catch (Exception e) {
-                AppLogger.e("end transaction error", e);
+                SimpleLogger.e("end transaction error", e);
             }
-        }
-
-        try {
-            db.close();
-        } catch (Exception e) {
-            AppLogger.e("Can't close the sqlite db connection", e);
         }
     }
 

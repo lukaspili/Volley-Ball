@@ -9,8 +9,8 @@ import com.siu.android.volleyball.BallResponse;
  */
 public abstract class LocalRequest<T> extends BallRequest<T> {
 
-    public LocalRequest(int method, String url, Response.ErrorListener listener) {
-        super(method, url, listener);
+    public LocalRequest(int method, String url, Response.ErrorListener errorListener) {
+        super(method, url, errorListener);
     }
 
     public LocalRequest(int method, String url, BallResponse.ListenerWithLocalProcessing<T> listener, Response.ErrorListener errorListener) {

@@ -18,12 +18,12 @@ import java.util.List;
  */
 public class EntryRequest extends LocalRequest<List<Entry>> {
 
-    private final Gson gson = new Gson();
+    private static final Gson sGson = new Gson();
 
     /**
      * In this sample we mock the request so we don't care about the url
      */
-    private static final String URL = "http://some.url.com";
+    private static final String URL = "http://some.url.com/entries?bla=foobar";
 
     public EntryRequest(BallResponse.ListenerWithLocalProcessing<List<Entry>> listener, Response.ErrorListener errorListener) {
         super(Method.GET, URL, listener, errorListener);
@@ -40,7 +40,7 @@ public class EntryRequest extends LocalRequest<List<Entry>> {
     protected BallResponse<List<Entry>> parseBallNetworkResponse(NetworkResponse response) {
         try {
             String json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
-            List<Entry> entries = gson.fromJson(json, new TypeToken<List<Entry>>() {}.getType());
+            List<Entry> entries = sGson.fromJson(json, new TypeToken<List<Entry>>() {}.getType());
             return BallResponse.success(entries, HttpHeaderParser.parseCacheHeaders(response));
         } catch (Exception e) {
             return BallResponse.error(new ParseError(e));

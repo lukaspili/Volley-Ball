@@ -10,6 +10,9 @@ public class Entry implements EntryMapping {
     private long id;
     private String title;
 
+    public Entry() {
+    }
+
     public long getId() {
         return id;
     }

@@ -11,6 +11,7 @@ import com.android.volley.toolbox.BasicNetwork;
 import com.android.volley.toolbox.HttpClientStack;
 import com.android.volley.toolbox.HttpStack;
 import com.android.volley.toolbox.HurlStack;
+import com.siu.android.volleyball.util.ConfigUtils;
 
 /**
  * Created by lukas on 8/29/13.
@@ -47,39 +48,14 @@ public class VolleyBallConfig {
 
         public VolleyBallConfig build() {
             if (mInstance.mHttpStack == null) {
-                mInstance.mHttpStack = getDefaultHttpStack(mInstance.mContext);
+                mInstance.mHttpStack = ConfigUtils.getDefaultHttpStack(mInstance.mContext);
             }
 
             if (mInstance.mNetwork == null) {
-                mInstance.mNetwork = getDefaultNetwork(mInstance.mHttpStack);
+                mInstance.mNetwork = ConfigUtils.getDefaultNetwork(mInstance.mHttpStack);
             }
 
             return mInstance;
-        }
-
-        private HttpStack getDefaultHttpStack(Context context) {
-            String userAgent = "volley/0";
-            try {
-                String packageName = context.getPackageName();
-                PackageInfo info = context.getPackageManager().getPackageInfo(packageName, 0);
-                userAgent = packageName + "/" + info.versionCode;
-            } catch (PackageManager.NameNotFoundException e) {
-            }
-
-            HttpStack stack;
-            if (Build.VERSION.SDK_INT >= 9) {
-                stack = new HurlStack();
-            } else {
-                // Prior to Gingerbread, HttpUrlConnection was unreliable.
-                // See: http://android-developers.blogspot.com/2011/09/androids-http-clients.html
-                stack = new HttpClientStack(AndroidHttpClient.newInstance(userAgent));
-            }
-
-            return stack;
-        }
-
-        private Network getDefaultNetwork(HttpStack httpStack) {
-            return new BasicNetwork(httpStack);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.siu.android.volleyball.samples;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 
 import com.siu.android.volleyball.BallRequestQueue;
 import com.siu.android.volleyball.mock.FileMockNetwork;
@@ -17,6 +18,7 @@ public class Application extends android.app.Application {
     private static Context sContext;
     private static BallRequestQueue sRequestQueue;
     private static DatabaseHelper sDatabaseHelper;
+    private static SQLiteDatabase sSQLiteDatabase;
 
     @Override
     public void onCreate() {
@@ -25,17 +27,24 @@ public class Application extends android.app.Application {
         sContext = getApplicationContext();
 
         // init volley ball
-        VolleyBallConfig.Builder configBuilder = new VolleyBallConfig.Builder(sContext)
-                .httpStack(new OkHttpStack());
+        VolleyBallConfig.Builder configBuilder = new VolleyBallConfig.Builder(sContext);
 
+        // mock
         if (Constants.MOCK_WEBSERVICE) {
-            configBuilder.network(new FileMockNetwork());
+            FileMockNetwork network = new FileMockNetwork(sContext, new FileMockNetwork.Config()
+                    .basePath("fakeapi")
+                    .requestDuration(1)
+                    .realNetworkHttpStack(new OkHttpStack()));
+            configBuilder.network(network);
+        } else {
+            configBuilder.httpStack(new OkHttpStack());
         }
 
         sRequestQueue = VolleyBall.newRequestQueue(configBuilder.build());
 
         // init database helper
         sDatabaseHelper = new DatabaseHelper(sContext);
+        sSQLiteDatabase = sDatabaseHelper.getWritableDatabase();
     }
 
     public static Context getContext() {
@@ -48,5 +57,9 @@ public class Application extends android.app.Application {
 
     public static DatabaseHelper getDatabaseHelper() {
         return sDatabaseHelper;
+    }
+
+    public static SQLiteDatabase getSQLiteDatabase() {
+        return sSQLiteDatabase;
     }
 }

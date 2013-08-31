@@ -4,9 +4,15 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.widget.ListView;
 
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.siu.android.volleyball.BallResponse;
+import com.siu.android.volleyball.samples.Application;
 import com.siu.android.volleyball.samples.R;
 import com.siu.android.volleyball.samples.adapter.EntriesAdapter;
 import com.siu.android.volleyball.samples.model.Entry;
+import com.siu.android.volleyball.samples.util.SimpleLogger;
+import com.siu.android.volleyball.samples.volley.EntryRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,12 +42,30 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
 
-        if(!mLoadingFromWebSuccessful) {
-
+        if (!mLoadingFromWebSuccessful) {
+            loadEntries();
         }
     }
 
     private void loadEntries() {
+        EntryRequest entryRequest = new EntryRequest(new BallResponse.ListenerWithLocalProcessing<List<Entry>>() {
+            @Override
+            public void onLocalResponse(List<Entry> response) {
+                SimpleLogger.d("local resposne %s", response);
+            }
 
+            @Override
+            public void onRemoteResponse(List<Entry> response) {
+                SimpleLogger.d("remote resposne %s", response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                SimpleLogger.d("error response %s", error.getMessage());
+            }
+        }
+        );
+
+        Application.getRequestQueue().add(entryRequest);
     }
 }
