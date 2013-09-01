@@ -2,13 +2,10 @@ package com.siu.android.volleyball.local;
 
 import android.os.Process;
 
-import com.android.volley.Request;
-import com.android.volley.ResponseDelivery;
 import com.android.volley.VolleyLog;
 import com.siu.android.volleyball.BallRequest;
 import com.siu.android.volleyball.BallResponse;
 import com.siu.android.volleyball.BallResponseDelivery;
-import com.siu.android.volleyball.util.BallLogger;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -23,6 +20,8 @@ public class LocalDispatcher extends Thread {
      * The queue of requests coming in for triage.
      */
     private final BlockingQueue<BallRequest> mRequestQueue;
+
+    private final BlockingQueue<BallRequest> mNetworkQueue;
 
     /**
      * For posting responses.
@@ -41,8 +40,9 @@ public class LocalDispatcher extends Thread {
      * @param requestQueue Queue of incoming requests for triage
      * @param delivery     Delivery interface to use for posting responses
      */
-    public LocalDispatcher(BlockingQueue<BallRequest> requestQueue, BallResponseDelivery delivery) {
+    public LocalDispatcher(BlockingQueue<BallRequest> requestQueue, BlockingQueue<BallRequest> networkQueue, BallResponseDelivery delivery) {
         mRequestQueue = requestQueue;
+        mNetworkQueue = networkQueue;
         mDelivery = delivery;
     }
 
@@ -74,14 +74,31 @@ public class LocalDispatcher extends Thread {
                 }
 
                 Object responseContent = request.getLocalRequestProcessor().getLocalResponse();
-                if(responseContent == null) {
+
+                // Do not deliver local response if null
+                // Let a chance to the cache to deliver a better response
+                if (responseContent == null) {
                     request.addMarker("local-response-content-null-exit");
+                    mDelivery.postNoResponse(request, BallResponse.ResponseSource.LOCAL);
                     continue;
                 }
 
                 BallResponse response = BallResponse.success(responseContent, null);
                 response.setResponseSource(BallResponse.ResponseSource.LOCAL);
-                mDelivery.postResponse(request, response);
+                response.setIntermediate(true);
+
+                // Post the intermediate response back to the user and have
+                // the delivery then forward the request along to the network.
+                mDelivery.postResponse(request, response, new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            mNetworkQueue.put(request);
+                        } catch (InterruptedException e) {
+                            // Not much we can do about this.
+                        }
+                    }
+                });
 
             } catch (InterruptedException e) {
                 // We may have been interrupted because it was time to quit.

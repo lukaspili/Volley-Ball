@@ -23,8 +23,6 @@ import android.os.Process;
 import com.android.volley.Cache;
 import com.android.volley.Network;
 import com.android.volley.NetworkResponse;
-import com.android.volley.Request;
-import com.android.volley.Response;
 import com.android.volley.ResponseDelivery;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
@@ -33,7 +31,7 @@ import java.util.concurrent.BlockingQueue;
 
 /**
  * Provides a thread for performing network dispatch from a queue of requests.
- *
+ * <p/>
  * Requests added to the specified queue are processed from the network via a
  * specified {@link com.android.volley.Network} interface. Responses are committed to cache, if
  * eligible, using a specified {@link com.android.volley.Cache} interface. Valid responses and
@@ -41,24 +39,34 @@ import java.util.concurrent.BlockingQueue;
  */
 @SuppressWarnings("rawtypes")
 public class BallNetworkDispatcher extends Thread {
-    /** The queue of requests to service. */
+    /**
+     * The queue of requests to service.
+     */
     private final BlockingQueue<BallRequest> mQueue;
-    /** The network interface for processing requests. */
+    /**
+     * The network interface for processing requests.
+     */
     private final Network mNetwork;
-    /** The cache to write to. */
+    /**
+     * The cache to write to.
+     */
     private final Cache mCache;
-    /** For posting responses and errors. */
+    /**
+     * For posting responses and errors.
+     */
     private final BallResponseDelivery mDelivery;
-    /** Used for telling us to die. */
+    /**
+     * Used for telling us to die.
+     */
     private volatile boolean mQuit = false;
 
     /**
      * Creates a new network dispatcher thread.  You must call {@link #start()}
      * in order to begin processing.
      *
-     * @param queue Queue of incoming requests for triage
-     * @param network Network interface to use for performing requests
-     * @param cache Cache interface to use for writing responses to cache
+     * @param queue    Queue of incoming requests for triage
+     * @param network  Network interface to use for performing requests
+     * @param cache    Cache interface to use for writing responses to cache
      * @param delivery Delivery interface to use for posting responses
      */
     public BallNetworkDispatcher(BlockingQueue<BallRequest> queue,
@@ -116,31 +124,40 @@ public class BallNetworkDispatcher extends Thread {
 
                 // If the server returned 304 AND we delivered a response already,
                 // we're done -- don't deliver a second identical response.
-                if (networkResponse.notModified && request.hasHadResponseDelivered()) {
-                    request.finish("not-modified");
-                    continue;
-                }
+//                if (networkResponse.notModified && request.isIntermediateResponseDelivered()) { //request.hasHadResponseDelivered()) {
+//                    BallResponse response = BallResponse.identical(BallResponse.ResponseSource.NETWORK);
+//                    mDelivery.postResponse(request, response);
+//                    request.finish("not-modified");
+//                    continue;
+//                }
 
                 // Parse the response here on the worker thread.
-                BallResponse<?> response = request.parseBallNetworkResponse(networkResponse);
+                BallResponse<?> response = request.getNetworkRequestProcessor().parseNetworkResponse(networkResponse);
                 response.setResponseSource(BallResponse.ResponseSource.NETWORK);
                 request.addMarker("network-parse-complete");
 
+                //TODO: Don't parse network response for 304
+                if (networkResponse.notModified) {
+                    response.setIdentical(true);
+                    request.addMarker("not-modified");
+                }
+
                 // Write to cache if applicable.
                 // TODO: Only update cache metadata instead of entire record for 304s.
-                if (request.shouldCache() && response.cacheEntry != null) {
-                    mCache.put(request.getCacheKey(), response.cacheEntry);
+                if (request.shouldCache() && response.getCacheEntry() != null) {
+                    mCache.put(request.getCacheKey(), response.getCacheEntry());
                     request.addMarker("network-cache-written");
                 }
 
                 // Post the response back.
-                request.markDelivered();
+//                request.markDelivered();
                 mDelivery.postResponse(request, response);
 
-                // Write to local database if applicable
-                if(request.shouldProcessLocal()) {
-                    request.getLocalRequestProcessor().saveLocalResponse(response.result);
+                // save to local if applicable
+                if (request.shouldProcessLocal()) {
+                    request.getLocalRequestProcessor().saveLocalResponse(response.getResult());
                 }
+
             } catch (VolleyError volleyError) {
                 parseAndDeliverNetworkError(request, volleyError);
             } catch (Exception e) {
@@ -153,5 +170,17 @@ public class BallNetworkDispatcher extends Thread {
     private void parseAndDeliverNetworkError(BallRequest<?> request, VolleyError error) {
         error = request.parseNetworkError(error);
         mDelivery.postError(request, error);
+    }
+
+    /**
+     * Write to local database if applicable
+     *
+     * @param request the request
+     * @param response the response
+     */
+    private void processLocalIfApplicable(BallRequest request, BallResponse response) {
+        if (request.shouldProcessLocal()) {
+            request.getLocalRequestProcessor().saveLocalResponse(response.getResult());
+        }
     }
 }

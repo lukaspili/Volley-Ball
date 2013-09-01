@@ -11,6 +11,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.siu.android.volleyball.exception.BallException;
 import com.siu.android.volleyball.local.LocalRequestProcessor;
+import com.siu.android.volleyball.network.NetworkRequestProcessor;
+import com.siu.android.volleyball.response.ResponseListener;
 
 /**
  * Created by lukas on 8/29/13.
@@ -26,12 +28,34 @@ public abstract class BallRequest<T> extends Request<T> {
 
     /* Additionnal logic from Ball */
     protected LocalRequestProcessor<T> mLocalRequestProcessor;
-    protected Response.Listener<T> mListener;
-    protected BallResponse.ListenerWithLocalProcessing<T> mListenerWithLocalProcessing;
+    protected NetworkRequestProcessor<T> mNetworkRequestProcessor;
+    protected ResponseListener mResponseListener;
 
-    protected boolean networkResponseDelivered = false;
-    protected boolean intermediateResponseDelivered = false;
-    protected boolean finished = false;
+    /**
+     * Error from final response, stored and used later if intermediate response is still to be delivered:
+     * If intermediate response is delivered after with no response, deliver the final error
+     */
+    private VolleyError mFinalResponseError;
+
+    protected boolean mFinalResponseDelivered = false;
+
+    /**
+     * Intermediate response of the request has been delivered.
+     * <p/>
+     * Several use cases:
+     * - In the executor delivery to consider only the 1st intermediate request and ignore the 2nd one.
+     * - REMOVED FOR NOW, NOT VOLATILE -- In the network dispatcher to return identical response in case of 304 not modified response
+     * and if a valid intermediate response was returned. Must be volatile because it can apply between
+     * local and network thread.
+     */
+    protected boolean mIntermediateResponseDelivered = false;
+
+    /**
+     * Request is finished and no more response should be delivered
+     * Volatile because it is used to determine if a marker should be added to the log,
+     * and value need to be synchronized between all worker threads
+     */
+    protected volatile boolean mFinished = false;
 
 
     protected BallRequest(int method, String url, Response.ErrorListener errorListener) {
@@ -45,35 +69,35 @@ public abstract class BallRequest<T> extends Request<T> {
             }
         }
 
+        if (shouldProcessNetwork()) {
+            mNetworkRequestProcessor = createNetworkRequestProcessor();
+
+            if (mNetworkRequestProcessor == null) {
+                throw new BallException("Request should process network but network request processor is not provided");
+            }
+        }
+
     }
 
-    protected BallRequest(int method, String url, Response.Listener<T> listener, Response.ErrorListener errorListener) {
+    protected BallRequest(int method, String url, ResponseListener<T> responseListener, Response.ErrorListener errorListener) {
         this(method, url, errorListener);
-        mListener = listener;
-    }
-
-    protected BallRequest(int method, String url, BallResponse.ListenerWithLocalProcessing<T> listener, Response.ErrorListener errorListener) {
-        this(method, url, errorListener);
-        mListenerWithLocalProcessing = listener;
+        mResponseListener = responseListener;
     }
 
     @Override
-    protected void deliverResponse(T response) {
-        if (shouldProcessLocal()) {
-            mListenerWithLocalProcessing.onRemoteResponse(response);
-        } else {
-            mListener.onResponse(response);
-        }
+    public void deliverResponse(T response) {
+        throw new BallException("Illegal call to #deliverResponse(), you need to call the new #deliverIntermediate and #deliverFinal methods");
     }
+
 
     /* Override from parent because of return type or proctected scope */
 
     @Override
     protected final Response<T> parseNetworkResponse(NetworkResponse response) {
-        return null;
+        throw new BallException("Illegal call to #parseBallNetworkResponse, you need to call the new #parseBallNetworkResponse() method");
     }
 
-    abstract protected BallResponse<T> parseBallNetworkResponse(NetworkResponse response);
+    //abstract protected BallResponse<T> parseBallNetworkResponse(NetworkResponse response);
 
 
     protected VolleyError parseNetworkError(VolleyError volleyError) {
@@ -81,17 +105,34 @@ public abstract class BallRequest<T> extends Request<T> {
     }
 
     public void addMarker(String tag) {
+        // ignore adding marker to finished log because it can happen when markers are added from several parallel threads
+        if (mFinished) {
+            return;
+        }
+
         if (BallMarkerLog.ENABLED) {
-            mEventLog.add(tag, Thread.currentThread().getId());
+            try {
+                mEventLog.add(tag, Thread.currentThread().getId());
+            } catch (IllegalStateException e) {
+                // ignore exception from adding marker to finished log because it can happen when
+                // markers are added from several parallel threads
+            }
         } else if (mRequestBirthTime == 0) {
             mRequestBirthTime = SystemClock.elapsedRealtime();
         }
     }
 
     public void finish(final String tag) {
+        if (mFinished) {
+            throw new BallException("Trying to finish an already finished request");
+        }
+
+        mFinished = true;
+
         if (mRequestQueue != null) {
             mRequestQueue.finish(this);
         }
+
         if (BallMarkerLog.ENABLED) {
             final long threadId = Thread.currentThread().getId();
             if (Looper.myLooper() != Looper.getMainLooper()) {
@@ -123,7 +164,7 @@ public abstract class BallRequest<T> extends Request<T> {
     }
 
 
-    /* Override to get local request support */
+    /* Override to get local processing */
 
     public boolean shouldProcessLocal() {
         return false;
@@ -134,6 +175,45 @@ public abstract class BallRequest<T> extends Request<T> {
     }
 
 
+    /* Override to get network processing */
+
+    public boolean shouldProcessNetwork() {
+        return false;
+    }
+
+    protected NetworkRequestProcessor createNetworkRequestProcessor() {
+        return null;
+    }
+
+
+    /* Complete request */
+
+    public void deliverIntermediateResponse(T response, BallResponse.ResponseSource responseSource) {
+        assertListenerExists();
+        mResponseListener.onIntermediateResponse(response, responseSource);
+    }
+
+    public void deliverFinalResponse(T response, BallResponse.ResponseSource responseSource) {
+        assertListenerExists();
+        mResponseListener.onFinalResponse(response, responseSource);
+    }
+
+    public void deliverIdenticalFinalResponse(BallResponse.ResponseSource responseSource) {
+        assertListenerExists();
+        mResponseListener.onFinalResponseIdenticalToIntermediate(responseSource);
+    }
+
+    protected void assertListenerExists() {
+        if (mResponseListener == null) {
+            throw new BallException("Listener is null, you need to provide one or override deliverIntermediateResponse and deliverFinalResponse");
+        }
+    }
+
+    public boolean isCompleteRequest() {
+        return shouldProcessLocal() && shouldProcessNetwork();
+    }
+
+
 
     /* Gets and sets */
 
@@ -141,27 +221,39 @@ public abstract class BallRequest<T> extends Request<T> {
         return mLocalRequestProcessor;
     }
 
-    public boolean isNetworkResponseDelivered() {
-        return networkResponseDelivered;
+    public NetworkRequestProcessor<T> getNetworkRequestProcessor() {
+        return mNetworkRequestProcessor;
     }
 
-    public void setNetworkResponseDelivered(boolean networkResponseDelivered) {
-        this.networkResponseDelivered = networkResponseDelivered;
+    public boolean isFinalResponseDelivered() {
+        return mFinalResponseDelivered;
+    }
+
+    public void setFinalResponseDelivered(boolean finalResponseDelivered) {
+        this.mFinalResponseDelivered = finalResponseDelivered;
     }
 
     public boolean isIntermediateResponseDelivered() {
-        return intermediateResponseDelivered;
+        return mIntermediateResponseDelivered;
     }
 
     public void setIntermediateResponseDelivered(boolean intermediateResponseDelivered) {
-        this.intermediateResponseDelivered = intermediateResponseDelivered;
+        this.mIntermediateResponseDelivered = intermediateResponseDelivered;
     }
 
     public boolean isFinished() {
-        return finished;
+        return mFinished;
     }
 
     public void setFinished(boolean finished) {
-        this.finished = finished;
+        this.mFinished = finished;
+    }
+
+    public VolleyError getFinalResponseError() {
+        return mFinalResponseError;
+    }
+
+    public void setFinalResponseError(VolleyError finalResponseError) {
+        mFinalResponseError = finalResponseError;
     }
 }

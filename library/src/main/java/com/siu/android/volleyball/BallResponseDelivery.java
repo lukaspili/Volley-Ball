@@ -36,4 +36,6 @@ public interface BallResponseDelivery {
      * Posts an error for the given request.
      */
     public void postError(BallRequest<?> request, VolleyError error);
+
+    public void postNoResponse(BallRequest request, BallResponse.ResponseSource responseSource);
 }

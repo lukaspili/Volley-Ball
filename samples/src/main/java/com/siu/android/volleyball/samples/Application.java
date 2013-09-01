@@ -26,6 +26,10 @@ public class Application extends android.app.Application {
 
         sContext = getApplicationContext();
 
+        if(Constants.DEBUG) {
+            deleteDatabase(DatabaseHelper.NAME);
+        }
+
         // init volley ball
         VolleyBallConfig.Builder configBuilder = new VolleyBallConfig.Builder(sContext);
 

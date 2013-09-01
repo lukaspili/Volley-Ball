@@ -27,6 +27,7 @@ import com.android.volley.NetworkDispatcher;
 import com.android.volley.Request;
 import com.android.volley.ResponseDelivery;
 import com.android.volley.VolleyLog;
+import com.siu.android.volleyball.ball.BallExecutorDelivery;
 import com.siu.android.volleyball.local.LocalDispatcher;
 
 import java.util.HashMap;
@@ -158,7 +159,7 @@ public class BallRequestQueue {
         }
 
         // local dispatcher
-        mLocalDispatcher = new LocalDispatcher(mLocalQueue, mDelivery);
+        mLocalDispatcher = new LocalDispatcher(mLocalQueue, mNetworkQueue, mDelivery);
         mLocalDispatcher.start();
     }
 

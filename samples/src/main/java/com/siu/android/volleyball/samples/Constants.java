@@ -6,4 +6,5 @@ package com.siu.android.volleyball.samples;
 public class Constants {
 
     public static final boolean MOCK_WEBSERVICE = true;
+    public static final boolean DEBUG = true;
 }

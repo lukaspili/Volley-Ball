@@ -17,6 +17,7 @@
 package com.siu.android.volleyball;
 
 import com.android.volley.Cache;
+import com.android.volley.Response;
 import com.android.volley.VolleyError;
 
 /**
@@ -26,74 +27,45 @@ import com.android.volley.VolleyError;
  */
 public class BallResponse<T> {
 
-    public interface Listener<T> {
-        public void onResponse(T response);
-    }
-
-    public interface ErrorListener {
-        public void onErrorResponse(VolleyError error);
-    }
-
-    public interface ListenerWithLocalProcessing<T> {
-        public void onLocalResponse(T response);
-
-        public void onRemoteResponse(T response);
-    }
-
     public static enum ResponseSource {
         LOCAL, CACHE, NETWORK
     }
 
+    protected Response<T> mResponse;
     protected ResponseSource mResponseSource;
-
-    /**
-     * Parsed response, or null in the case of error.
-     */
-    public final T result;
-
-    /**
-     * Cache metadata for this response, or null in the case of error.
-     */
-    public final Cache.Entry cacheEntry;
-
-    /**
-     * Detailed error information if <code>errorCode != OK</code>.
-     */
-    public final VolleyError error;
-
-    /**
-     * True if this response was a soft-expired one and a second one MAY be coming.
-     */
-    public boolean intermediate = false;
+    protected boolean mIdentical = false;
 
     /**
      * Returns whether this response is considered successful.
      */
     public boolean isSuccess() {
-        return error == null;
+        return mResponse.isSuccess();
     }
 
+    public static <T> BallResponse<T> identical(ResponseSource responseSource) {
+        return new BallResponse<T>(Response.<T>success(null, null), responseSource, true);
+    }
 
     public static <T> BallResponse<T> success(T result, Cache.Entry cacheEntry) {
-        return new BallResponse<T>(result, cacheEntry);
+        return new BallResponse<T>(Response.success(result, cacheEntry));
     }
 
     public static <T> BallResponse<T> error(VolleyError error) {
-        return new BallResponse<T>(error);
+        return new BallResponse<T>(Response.<T>error(error), ResponseSource.NETWORK); // error cames always from network
     }
 
-    protected BallResponse(T result, Cache.Entry cacheEntry) {
-        this.result = result;
-        this.cacheEntry = cacheEntry;
-        this.error = null;
+    protected BallResponse(Response<T> response) {
+        this(response, null, false);
     }
 
-    protected BallResponse(VolleyError error) {
-        this.result = null;
-        this.cacheEntry = null;
-        this.error = error;
+    protected BallResponse(Response<T> response, ResponseSource responseSource) {
+        this(response, responseSource, false);
+    }
 
-        mResponseSource = ResponseSource.NETWORK; // error cames always from network
+    public BallResponse(Response<T> response, ResponseSource responseSource, boolean identical) {
+        mResponse = response;
+        mResponseSource = responseSource;
+        mIdentical = identical;
     }
 
     public ResponseSource getResponseSource() {
@@ -102,5 +74,33 @@ public class BallResponse<T> {
 
     public void setResponseSource(ResponseSource responseSource) {
         this.mResponseSource = responseSource;
+    }
+
+    public boolean isIntermediate() {
+        return mResponse.intermediate;
+    }
+
+    public void setIntermediate(boolean intermediate) {
+        mResponse.intermediate = intermediate;
+    }
+
+    public T getResult() {
+        return mResponse.result;
+    }
+
+    public Cache.Entry getCacheEntry() {
+        return mResponse.cacheEntry;
+    }
+
+    public VolleyError getError() {
+        return mResponse.error;
+    }
+
+    public boolean isIdentical() {
+        return mIdentical;
+    }
+
+    public void setIdentical(boolean identical) {
+        mIdentical = identical;
     }
 }

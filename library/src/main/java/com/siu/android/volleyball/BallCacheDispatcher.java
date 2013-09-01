@@ -123,8 +123,7 @@ public class BallCacheDispatcher extends Thread {
 
                 // We have a cache hit; parse its data for delivery back to the request.
                 request.addMarker("cache-hit");
-                BallResponse<?> response = request.parseBallNetworkResponse(
-                        new NetworkResponse(entry.data, entry.responseHeaders));
+                BallResponse<?> response = request.getNetworkRequestProcessor().parseNetworkResponse(new NetworkResponse(entry.data, entry.responseHeaders));
                 response.setResponseSource(BallResponse.ResponseSource.CACHE);
                 request.addMarker("cache-hit-parsed");
 
@@ -139,7 +138,7 @@ public class BallCacheDispatcher extends Thread {
                     request.setCacheEntry(entry);
 
                     // Mark the response as intermediate.
-                    response.intermediate = true;
+                    response.setIntermediate(true);
 
                     // Post the intermediate response back to the user and have
                     // the delivery then forward the request along to the network.

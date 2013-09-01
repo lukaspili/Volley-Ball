@@ -20,7 +20,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE 'ENTRIES' (" +
                 "'_id' INTEGER PRIMARY KEY ," + // 0: id
-                "'TITLE' TEXT);"); // 1: title
+                "'title' TEXT);"); // 1: title
 
     }
 
