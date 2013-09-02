@@ -7,6 +7,7 @@ buildscript {
     }
 }
 
+//apply plugin: 'java'
 apply plugin: 'android-library'
 
 repositories {
@@ -20,9 +21,47 @@ android {
     defaultConfig {
 
     }
+
+    sourceSets {
+        instrumentTest.setRoot('src/test')
+    }
+}
+
+sourceSets {
+    unitTest {
+        java.srcDir file('src/test/java')
+        resources.srcDir file('src/test/resources')
+    }
 }
 
 dependencies {
     compile project(':library:volley')
     compile 'commons-io:commons-io:2.4'
+
+    unitTestCompile files("$project.buildDir/classes/release")
+    unitTestCompile files("${project(':library:volley').buildDir}/classes/release")
+    unitTestCompile 'com.google.android:android:4.1.1.4'
+    unitTestCompile 'junit:junit:4.11'
+    unitTestCompile 'org.mockito:mockito-core:1.9.5'
+    unitTestCompile 'org.easytesting:fest-assert-core:2.0M10'
+    unitTestCompile 'org.robolectric:robolectric:2.1.1'
+
+    // duplicate dependencies to have autocompletion in android studio
+    instrumentTestCompile 'junit:junit:4.11'
+    instrumentTestCompile 'org.mockito:mockito-core:1.9.5'
+    instrumentTestCompile 'org.easytesting:fest-assert-core:2.0M10'
+    instrumentTestCompile 'org.robolectric:robolectric:2.1.1'
 }
+
+configurations {
+    unitTestCompile.extendsFrom runtime
+    unitTestRuntime.extendsFrom unitTestCompile
+}
+
+task unitTest(type:Test, dependsOn: assemble) {
+    description = "run unit tests"
+    testClassesDir = project.sourceSets.unitTest.output.classesDir
+    classpath = project.sourceSets.unitTest.runtimeClasspath
+}
+
+check.dependsOn unitTest

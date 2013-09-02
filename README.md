@@ -156,8 +156,15 @@ Scenario 1
 
 ## Misc
 
-Enable detailled request logs in the same than with Volley : `adb shell setprop log.tag.Volley VERBOSE`
+Enable detailled request logs in the same way than with Volley : `adb shell setprop log.tag.Volley VERBOSE`
 
+
+## Structure
+
+Volley Ball is built on top of Volley, which is included as a git submodule from <https://android.googlesource.com/platform/frameworks/volley>. Sadly, Volley uses several times the private and default scopes which obligated me to copy past some pieces of code. It's documented in the source code.
+
+
+You can run the tests with the command line: `./gradlew library:unitTest`
 
 
 

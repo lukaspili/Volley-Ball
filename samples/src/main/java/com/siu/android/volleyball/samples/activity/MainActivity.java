@@ -53,7 +53,6 @@ public class MainActivity extends Activity {
     private void loadEntries() {
         setProgressBarIndeterminateVisibility(true);
 
-
         CompleteEntryRequest entryRequest = new CompleteEntryRequest(new ResponseListener<List<Entry>>() {
             @Override
             public void onIntermediateResponse(List<Entry> response, BallResponse.ResponseSource responseSource) {

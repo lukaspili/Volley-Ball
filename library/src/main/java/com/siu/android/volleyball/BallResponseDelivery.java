@@ -37,5 +37,5 @@ public interface BallResponseDelivery {
      */
     public void postError(BallRequest<?> request, VolleyError error);
 
-    public void postNoResponse(BallRequest request, BallResponse.ResponseSource responseSource);
+    public void postEmptyIntermediateResponse(BallRequest request, BallResponse.ResponseSource responseSource);
 }

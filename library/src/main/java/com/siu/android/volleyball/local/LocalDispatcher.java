@@ -60,53 +60,65 @@ public class LocalDispatcher extends Thread {
         if (DEBUG) VolleyLog.v("start new dispatcher");
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
 
-        while (true) {
-            try {
-                // Get a request from the local triage queue, blocking until
-                // at least one is available.
-                final BallRequest request = mRequestQueue.take();
-                request.addMarker("local-queue-take");
+        while (dispatch()) {
 
-                // If the request has been canceled, don't bother dispatching it.
-                if (request.isCanceled()) {
-                    request.finish("local-discard-canceled");
-                    continue;
-                }
-
-                Object responseContent = request.getLocalRequestProcessor().getLocalResponse();
-
-                // Do not deliver local response if null
-                // Let a chance to the cache to deliver a better response
-                if (responseContent == null) {
-                    request.addMarker("local-response-content-null-exit");
-                    mDelivery.postNoResponse(request, BallResponse.ResponseSource.LOCAL);
-                    continue;
-                }
-
-                BallResponse response = BallResponse.success(responseContent, null);
-                response.setResponseSource(BallResponse.ResponseSource.LOCAL);
-                response.setIntermediate(true);
-
-                // Post the intermediate response back to the user and have
-                // the delivery then forward the request along to the network.
-                mDelivery.postResponse(request, response, new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            mNetworkQueue.put(request);
-                        } catch (InterruptedException e) {
-                            // Not much we can do about this.
-                        }
-                    }
-                });
-
-            } catch (InterruptedException e) {
-                // We may have been interrupted because it was time to quit.
-                if (mQuit) {
-                    return;
-                }
-                continue;
-            }
         }
+    }
+
+    /**
+     *
+     * @return true to stay in the dispatch loop or false to quit
+     */
+    protected boolean dispatch() {
+        try {
+            // Get a request from the local triage queue, blocking until
+            // at least one is available.
+            final BallRequest request = mRequestQueue.take();
+            request.addMarker("local-queue-take");
+
+            // If the request has been canceled, don't bother dispatching it.
+            if (request.isCanceled()) {
+                request.finish("local-discard-canceled");
+                return true;
+            }
+
+            Object responseContent = request.getLocalRequestProcessor().getLocalResponse();
+
+            // Do not deliver local response if null
+            // Let a chance to the cache to deliver a better response
+            if (responseContent == null) {
+                request.addMarker("local-response-content-null-exit");
+                mDelivery.postEmptyIntermediateResponse(request, BallResponse.ResponseSource.LOCAL);
+                return true;
+            }
+
+            request.addMarker("local-response-get-content-successful");
+
+            BallResponse response = BallResponse.success(responseContent, null);
+            response.setResponseSource(BallResponse.ResponseSource.LOCAL);
+            response.setIntermediate(true);
+
+            // Post the intermediate response back to the user and have
+            // the delivery then forward the request along to the network.
+            mDelivery.postResponse(request, response, new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        mNetworkQueue.put(request);
+                    } catch (InterruptedException e) {
+                        // Not much we can do about this.
+                    }
+                }
+            });
+
+        } catch (InterruptedException e) {
+            // We may have been interrupted because it was time to quit.
+            if (mQuit) {
+                return false;
+            }
+            return true;
+        }
+
+        return true;
     }
 }

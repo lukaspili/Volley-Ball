@@ -30,6 +30,11 @@ import java.util.concurrent.Executor;
  */
 public class BallExecutorDelivery implements BallResponseDelivery {
 
+    public static final String MARKER_POST_EMPTY_INTERMEDIATE_RESPONSE = "post-empty-intermediate-response";
+    public static final String MARKER_POST_RESPONSE = "post-response";
+    public static final String MARKER_POST_ERROR = "post-error";
+    public static final String MARKER_INTERMEDIATE_RESPONSE_ALREADY_DELIVERED = "intermediate-response-already-delivered-exit";
+
     /**
      * Used for posting responses, typically to the main thread.
      */
@@ -68,29 +73,29 @@ public class BallExecutorDelivery implements BallResponseDelivery {
     @Override
     public void postResponse(BallRequest<?> request, BallResponse<?> response, Runnable runnable) {
         //request.markDelivered();
-        request.addMarker("post-response");
+        request.addMarker(MARKER_POST_RESPONSE);
         mResponsePoster.execute(new ResponseDeliveryRunnable(request, response, runnable));
     }
 
     @Override
     public void postError(BallRequest<?> request, VolleyError error) {
-        request.addMarker("post-error");
+        request.addMarker(MARKER_POST_ERROR);
         BallResponse<?> response = BallResponse.error(error);
         mResponsePoster.execute(new ResponseDeliveryRunnable(request, response, null));
     }
 
     @Override
-    public void postNoResponse(BallRequest request, BallResponse.ResponseSource responseSource) {
-        request.addMarker("post-no-response");
-        mResponsePoster.execute(new NoResponseDeliveryRunnable(request, responseSource));
+    public void postEmptyIntermediateResponse(BallRequest request, BallResponse.ResponseSource responseSource) {
+        request.addMarker(MARKER_POST_EMPTY_INTERMEDIATE_RESPONSE);
+        mResponsePoster.execute(new EmptyIntermediateDeliveryRunnable(request, responseSource));
     }
 
-    private static class NoResponseDeliveryRunnable implements Runnable {
+    protected static class EmptyIntermediateDeliveryRunnable implements Runnable {
 
         private final BallRequest mRequest;
         private final BallResponse.ResponseSource mResponseSource;
 
-        private NoResponseDeliveryRunnable(BallRequest request, BallResponse.ResponseSource responseSource) {
+        private EmptyIntermediateDeliveryRunnable(BallRequest request, BallResponse.ResponseSource responseSource) {
             mRequest = request;
             mResponseSource = responseSource;
         }
@@ -102,26 +107,23 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                 return;
             }
 
-            if(mRequest.isIntermediateResponseDelivered()) {
+            if (mRequest.isIntermediateResponseDelivered()) {
                 //TODO: IGNORE ?
             }
 
             mRequest.setIntermediateResponseDelivered(true);
 
             // final response already delivered,
-            if(mRequest.isFinalResponseDelivered()) {
+            if (mRequest.isFinalResponseDelivered()) {
                 mRequest.deliverError(mRequest.getFinalResponseError());
                 mRequest.finish("done-with-intermediate-no-response"); //TODO: ADD SOURCE ?
             }
         }
     }
 
-    /**
-     * A Runnable used for delivering network responses to a listener on the
-     * main thread.
-     */
+
     @SuppressWarnings("rawtypes")
-    private static class ResponseDeliveryRunnable implements Runnable {
+    protected static class ResponseDeliveryRunnable implements Runnable {
         private final BallRequest mRequest;
         private final BallResponse mResponse;
         private final Runnable mRunnable;
@@ -149,8 +151,8 @@ public class BallExecutorDelivery implements BallResponseDelivery {
 
             // intermediate response from local or cache
             if (mResponse.isIntermediate()) {
-                if(mRequest.isIntermediateResponseDelivered()) {
-                    mRequest.addMarker("intermediate-response-already-delivered-exit");
+                if (mRequest.isIntermediateResponseDelivered()) {
+                    mRequest.addMarker(MARKER_INTERMEDIATE_RESPONSE_ALREADY_DELIVERED);
                     return;
                 }
 
@@ -258,7 +260,19 @@ public class BallExecutorDelivery implements BallResponseDelivery {
 //            }
         }
 
-//        public void continueRequest(BallRequest request, String tag, Runnable runnable) {
+        public BallRequest getRequest() {
+            return mRequest;
+        }
+
+        public BallResponse getResponse() {
+            return mResponse;
+        }
+
+        public Runnable getRunnable() {
+            return mRunnable;
+        }
+
+        //        public void continueRequest(BallRequest request, String tag, Runnable runnable) {
 //            request.addMarker(tag);
 //            runPostRunnableIfAny(runnable);
 //        }
