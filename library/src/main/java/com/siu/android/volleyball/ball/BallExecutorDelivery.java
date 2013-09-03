@@ -22,6 +22,7 @@ import com.android.volley.VolleyError;
 import com.siu.android.volleyball.BallRequest;
 import com.siu.android.volleyball.BallResponse;
 import com.siu.android.volleyball.BallResponseDelivery;
+import com.siu.android.volleyball.exception.BallException;
 
 import java.util.concurrent.Executor;
 
@@ -34,6 +35,7 @@ public class BallExecutorDelivery implements BallResponseDelivery {
     public static final String MARKER_POST_RESPONSE = "post-response";
     public static final String MARKER_POST_ERROR = "post-error";
     public static final String MARKER_INTERMEDIATE_RESPONSE_ALREADY_DELIVERED = "intermediate-response-already-delivered-exit";
+    public static final String MARKER_DONE_WITH_RESPONSE_FROM = "done-with-response-from-%s";
 
     /**
      * Used for posting responses, typically to the main thread.
@@ -159,9 +161,11 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                 mRequest.setIntermediateResponseDelivered(true);
 
                 // errors come only from network response, we don't have error management for local or cache responses
-                if (mResponse.isSuccess()) {
-                    mRequest.deliverIntermediateResponse(mResponse.getResult(), mResponse.getResponseSource());
+                if (!mResponse.isSuccess()) {
+                    throw new BallException("Error response must come only from network, thus they can't be intermediate");
                 }
+
+                mRequest.deliverIntermediateResponse(mResponse.getResult(), mResponse.getResponseSource());
 
                 if (mRunnable != null) {
                     mRunnable.run();
@@ -194,7 +198,7 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                 }
 
                 // after final response, finish the request (except for the case of intermediate response still to be delivered)
-                mRequest.finish("done-with-response-from-" + mResponse.getResponseSource().toString().toLowerCase());
+                mRequest.finish(String.format(MARKER_DONE_WITH_RESPONSE_FROM, mResponse.getResponseSource().toString().toLowerCase()));
             }
 
 //            // no 2 intermediate responses, either local or cache

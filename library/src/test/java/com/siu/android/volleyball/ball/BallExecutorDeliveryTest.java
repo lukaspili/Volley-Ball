@@ -3,6 +3,7 @@ package com.siu.android.volleyball.ball;
 import com.siu.android.volleyball.BallRequest;
 import com.siu.android.volleyball.BallResponse;
 import com.siu.android.volleyball.BallResponseDelivery;
+import com.siu.android.volleyball.exception.BallException;
 import com.siu.android.volleyball.mockito.LastInteraction;
 
 import org.junit.Before;
@@ -17,7 +18,6 @@ import java.util.concurrent.Executor;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -64,7 +64,7 @@ public class BallExecutorDeliveryTest {
     }
 
     @Test
-    public void postResponseShouldMarkLogAndRunDeliveryRunnable() {
+    public void shouldPostResponseAndMarkLog() {
         Executor executorMock = mock(Executor.class);
         BallResponseDelivery responseDelivery = new BallExecutorDelivery(executorMock);
         final Runnable runnable = new Runnable() {
@@ -79,11 +79,8 @@ public class BallExecutorDeliveryTest {
         responseDelivery.postResponse(mRequest, mResponse);
         responseDelivery.postResponse(mRequest, mResponse, runnable);
 
-//        BallExecutorDelivery.ResponseDeliveryRunnable responseDeliveryRunnable = new BallExecutorDelivery.ResponseDeliveryRunnable(mRequest, mResponse, null);
-
-
         verify(mRequest, times(2)).addMarker(BallExecutorDelivery.MARKER_POST_RESPONSE);
-        
+
         verify(executorMock).execute(argThat(new ArgumentMatcher<BallExecutorDelivery.ResponseDeliveryRunnable>() {
             @Override
             public boolean matches(Object argument) {
@@ -102,7 +99,7 @@ public class BallExecutorDeliveryTest {
     }
 
     @Test
-    public void postSecondIntermediateResponseShouldBeIgnored() {
+    public void shouldIgnoreSecondIntermediateResponse() {
         when(mRequest.isIntermediateResponseDelivered()).thenReturn(true);
         when(mResponse.isIntermediate()).thenReturn(true);
         when(mResponse.getResponseSource()).thenReturn(BallResponse.ResponseSource.LOCAL); // or cache, whatever
@@ -110,7 +107,89 @@ public class BallExecutorDeliveryTest {
         mResponseDelivery.postResponse(mRequest, mResponse);
 
         verify(mRequest, new LastInteraction()).addMarker(BallExecutorDelivery.MARKER_INTERMEDIATE_RESPONSE_ALREADY_DELIVERED);
+    }
 
-//        verifyNoMoreInteractions(mRequest);
+    @Test
+    public void shouldDeliverIntermediateSuccessResponse() {
+        Object response = new Object();
+        BallResponse.ResponseSource responseSource = BallResponse.ResponseSource.LOCAL;
+
+        when(mRequest.isIntermediateResponseDelivered()).thenReturn(false);
+        when(mResponse.isIntermediate()).thenReturn(true);
+        when(mResponse.isSuccess()).thenReturn(true);
+        when(mResponse.getResult()).thenReturn(response);
+        when(mResponse.getResponseSource()).thenReturn(responseSource); // or cache, whatever
+
+        mResponseDelivery.postResponse(mRequest, mResponse);
+
+        verify(mRequest).setIntermediateResponseDelivered(true);
+        verify(mRequest, new LastInteraction()).deliverIntermediateResponse(response, responseSource);
+    }
+
+    @Test
+    public void shouldDeliverIntermediateSuccessResponseWithPostRunnable() {
+        Object response = new Object();
+        BallResponse.ResponseSource responseSource = BallResponse.ResponseSource.LOCAL;
+        Runnable postRunnable = mock(Runnable.class);
+
+        when(mRequest.isIntermediateResponseDelivered()).thenReturn(false);
+        when(mResponse.isIntermediate()).thenReturn(true);
+        when(mResponse.isSuccess()).thenReturn(true);
+        when(mResponse.getResult()).thenReturn(response);
+        when(mResponse.getResponseSource()).thenReturn(responseSource); // or cache, whatever
+
+        mResponseDelivery.postResponse(mRequest, mResponse, postRunnable);
+
+        verify(mRequest).setIntermediateResponseDelivered(true);
+        verify(mRequest, new LastInteraction()).deliverIntermediateResponse(response, responseSource);
+        verify(postRunnable).run();
+    }
+
+    @Test(expected = BallException.class)
+    public void shouldThrowWhenIntermediateErrorResponse() {
+        when(mRequest.isIntermediateResponseDelivered()).thenReturn(false);
+        when(mResponse.isIntermediate()).thenReturn(true);
+        when(mResponse.isSuccess()).thenReturn(false);
+        when(mResponse.getResponseSource()).thenReturn(BallResponse.ResponseSource.LOCAL); // or cache, whatever
+
+        mResponseDelivery.postResponse(mRequest, mResponse);
+    }
+
+    @Test
+    public void shouldDeliverFinalSuccessResponse() {
+        Object response = new Object();
+        BallResponse.ResponseSource responseSource = BallResponse.ResponseSource.NETWORK; // or cache, whatever
+
+        when(mRequest.isIntermediateResponseDelivered()).thenReturn(true);
+        when(mResponse.isIntermediate()).thenReturn(false);
+        when(mResponse.isSuccess()).thenReturn(true);
+        when(mResponse.isIdentical()).thenReturn(false);
+        when(mResponse.getResult()).thenReturn(response);
+        when(mResponse.getResponseSource()).thenReturn(responseSource); // or cache, whatever
+
+        mResponseDelivery.postResponse(mRequest, mResponse);
+
+        verify(mRequest).setFinalResponseDelivered(true);
+        verify(mRequest).deliverFinalResponse(response, responseSource);
+        verify(mRequest, new LastInteraction()).finish(String.format(BallExecutorDelivery.MARKER_DONE_WITH_RESPONSE_FROM, mResponse.getResponseSource().toString().toLowerCase()));
+    }
+
+    @Test
+    public void shouldDeliverFinalIdenticalSuccessResponse() {
+        Object response = new Object();
+        BallResponse.ResponseSource responseSource = BallResponse.ResponseSource.NETWORK; // or cache, whatever
+
+        when(mRequest.isIntermediateResponseDelivered()).thenReturn(true);
+        when(mResponse.isIntermediate()).thenReturn(false);
+        when(mResponse.isSuccess()).thenReturn(true);
+        when(mResponse.isIdentical()).thenReturn(true);
+        when(mResponse.getResult()).thenReturn(response);
+        when(mResponse.getResponseSource()).thenReturn(responseSource); // or cache, whatever
+
+        mResponseDelivery.postResponse(mRequest, mResponse);
+
+        verify(mRequest).setFinalResponseDelivered(true);
+        verify(mRequest).deliverIdenticalFinalResponse(responseSource);
+        verify(mRequest, new LastInteraction()).finish(String.format(BallExecutorDelivery.MARKER_DONE_WITH_RESPONSE_FROM, mResponse.getResponseSource().toString().toLowerCase()));
     }
 }
