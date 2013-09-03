@@ -185,3 +185,4 @@ You can run the tests with the command line: `./gradlew library:unitTest`
 - request finished volatile -> finished only from executor
 - cancellation 
 - local and network only request
+- marker log constant methods
