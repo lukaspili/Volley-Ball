@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import com.siu.android.volleyball.BallRequestQueue;
 import com.siu.android.volleyball.mock.FileMockNetwork;
 import com.siu.android.volleyball.samples.database.DatabaseHelper;
+import com.siu.android.volleyball.samples.volley.fake.FakeNetwork;
 import com.siu.android.volleyball.samples.volley.OkHttpStack;
 import com.siu.android.volleyball.toolbox.VolleyBall;
 import com.siu.android.volleyball.toolbox.VolleyBallConfig;
@@ -17,6 +18,7 @@ public class Application extends android.app.Application {
 
     private static Context sContext;
     private static BallRequestQueue sRequestQueue;
+    private static BallRequestQueue sScenarioRequestQueue;
     private static DatabaseHelper sDatabaseHelper;
     private static SQLiteDatabase sSQLiteDatabase;
 
@@ -26,7 +28,7 @@ public class Application extends android.app.Application {
 
         sContext = getApplicationContext();
 
-        if(Constants.DEBUG) {
+        if (Constants.DEBUG) {
             deleteDatabase(DatabaseHelper.NAME);
         }
 
@@ -46,6 +48,10 @@ public class Application extends android.app.Application {
 
         sRequestQueue = VolleyBall.newRequestQueue(configBuilder.build());
 
+        sScenarioRequestQueue = VolleyBall.newRequestQueue(new VolleyBallConfig.Builder(sContext)
+                .network(new FakeNetwork())
+                .build());
+
         // init database helper
         sDatabaseHelper = new DatabaseHelper(sContext);
         sSQLiteDatabase = sDatabaseHelper.getWritableDatabase();
@@ -57,6 +63,10 @@ public class Application extends android.app.Application {
 
     public static BallRequestQueue getRequestQueue() {
         return sRequestQueue;
+    }
+
+    public static BallRequestQueue getScenarioRequestQueue() {
+        return sScenarioRequestQueue;
     }
 
     public static DatabaseHelper getDatabaseHelper() {
