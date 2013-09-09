@@ -1,34 +1,31 @@
 package com.siu.android.volleyball.toolbox;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.net.http.AndroidHttpClient;
-import android.os.Build;
 
+import com.android.volley.Cache;
 import com.android.volley.Network;
-import com.android.volley.toolbox.BasicNetwork;
-import com.android.volley.toolbox.HttpClientStack;
+import com.android.volley.toolbox.DiskBasedCache;
 import com.android.volley.toolbox.HttpStack;
-import com.android.volley.toolbox.HurlStack;
 import com.siu.android.volleyball.util.ConfigUtils;
+
+import java.io.File;
 
 /**
  * Created by lukas on 8/29/13.
  */
 public class VolleyBallConfig {
 
+    private static final String DEFAULT_CACHE_DIR = "volley";
+
     private Context mContext;
     private HttpStack mHttpStack;
     private Network mNetwork;
+    private Cache mCache;
 
     private VolleyBallConfig() {
     }
 
     public static class Builder {
-//        private Context mContext;
-//        private HttpStack mHttpStack;
-//        private Network mNetwork;
         private VolleyBallConfig mInstance;
 
         public Builder(Context context) {
@@ -46,6 +43,11 @@ public class VolleyBallConfig {
             return this;
         }
 
+        public Builder cache(Cache cache) {
+            mInstance.mCache = cache;
+            return this;
+        }
+
         public VolleyBallConfig build() {
             if (mInstance.mHttpStack == null) {
                 mInstance.mHttpStack = ConfigUtils.getDefaultHttpStack(mInstance.mContext);
@@ -55,10 +57,14 @@ public class VolleyBallConfig {
                 mInstance.mNetwork = ConfigUtils.getDefaultNetwork(mInstance.mHttpStack);
             }
 
+            if (mInstance.mCache == null) {
+                File cacheDir = new File(mInstance.mContext.getCacheDir(), DEFAULT_CACHE_DIR);
+                mInstance.mCache = new DiskBasedCache(cacheDir);
+            }
+
             return mInstance;
         }
     }
-
 
 
     public Context getContext() {
@@ -71,5 +77,9 @@ public class VolleyBallConfig {
 
     public Network getNetwork() {
         return mNetwork;
+    }
+
+    public Cache getCache() {
+        return mCache;
     }
 }

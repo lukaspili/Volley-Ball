@@ -85,9 +85,7 @@ public class VolleyBall {
     }
 
     public static BallRequestQueue newRequestQueue(VolleyBallConfig config) {
-        File cacheDir = new File(config.getContext().getCacheDir(), DEFAULT_CACHE_DIR);
-
-        BallRequestQueue queue = new BallRequestQueue(new DiskBasedCache(cacheDir), config.getNetwork());
+        BallRequestQueue queue = new BallRequestQueue(config.getCache(), config.getNetwork());
         queue.start();
 
         return queue;

@@ -46,6 +46,10 @@ public class BallResponse<T> {
         return new BallResponse<T>(Response.<T>success(null, null), responseSource, true);
     }
 
+    public static <T> BallResponse<T> success(T result) {
+        return new BallResponse<T>(Response.success(result, null));
+    }
+
     public static <T> BallResponse<T> success(T result, Cache.Entry cacheEntry) {
         return new BallResponse<T>(Response.success(result, cacheEntry));
     }

@@ -289,7 +289,7 @@ public class BallRequestQueue {
      * <p>Releases waiting requests for <code>request.getCacheKey()</code> if
      *      <code>request.shouldCache()</code>.</p>
      */
-    void finish(Request request) {
+    protected void finish(Request request) {
         // Remove from the set of requests currently being processed.
         synchronized (mCurrentRequests) {
             mCurrentRequests.remove(request);
