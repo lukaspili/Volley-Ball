@@ -114,7 +114,7 @@ public class BallExecutorDeliveryTest {
 
         verify(mRequest).setIntermediateResponseDelivered(true);
         verify(mRequest).deliverError(error);
-        verify(mRequest).finish(BallExecutorDelivery.DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE);
+        verify(mRequest).finish(BallExecutorDelivery.MARKER_DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE);
     }
 
     @Test
@@ -193,7 +193,8 @@ public class BallExecutorDeliveryTest {
         mResponseDelivery.postResponse(mRequest, mResponse);
 
         verify(mRequest).setIntermediateResponseDelivered(true);
-        verify(mRequest, new LastInteraction()).deliverIntermediateResponse(response, responseSource);
+        verify(mRequest).deliverIntermediateResponse(response, responseSource);
+        verify(mRequest, new LastInteraction()).isFinalResponseDelivered();
     }
 
     @Test
@@ -211,7 +212,8 @@ public class BallExecutorDeliveryTest {
         mResponseDelivery.postResponse(mRequest, mResponse, postRunnable);
 
         verify(mRequest).setIntermediateResponseDelivered(true);
-        verify(mRequest, new LastInteraction()).deliverIntermediateResponse(response, responseSource);
+        verify(mRequest).deliverIntermediateResponse(response, responseSource);
+        verify(mRequest, new LastInteraction()).isFinalResponseDelivered();
         verify(postRunnable).run();
     }
 
@@ -298,5 +300,42 @@ public class BallExecutorDeliveryTest {
         verify(mRequest).addMarker(BallExecutorDelivery.MARKER_ERROR_IN_FINAL_RESPONSE_LET_INTERMEDIATE_CONTINUE);
         verify(mRequest, new LastInteraction()).setFinalResponseError(error);
         verify(mRequest, never()).deliverError(any(VolleyError.class));
+    }
+
+    /**
+     * Should deliver intermediate and then the stored final error response when the final response happened before the intermediate one
+     */
+    @Test
+    public void shouldDeliverIntermediateAndThenStoredFinalErrorResponse() {
+        VolleyError error = new VolleyError("Some error");
+        Object response = new Object();
+
+        when(mRequest.isIntermediateResponseDelivered()).thenReturn(false);
+        when(mRequest.isFinalResponseDelivered()).thenReturn(true);
+        when(mRequest.getFinalResponseError()).thenReturn(error);
+        when(mResponse.isIntermediate()).thenReturn(true);
+        when(mResponse.isSuccess()).thenReturn(true);
+        when(mResponse.getResult()).thenReturn(response);
+        when(mResponse.getResponseSource()).thenReturn(BallResponse.ResponseSource.CACHE);
+
+        mResponseDelivery.postResponse(mRequest, mResponse);
+
+        verify(mRequest).deliverIntermediateResponse(response, BallResponse.ResponseSource.CACHE);
+        verify(mRequest).deliverError(error);
+        verify(mRequest, new LastInteraction()).finish(BallExecutorDelivery.MARKER_DONE_WITH_INTERMEDIATE_RESPONSE);
+    }
+
+    /**
+     * Throw exception when intermediate is delivered after final response, but no final response error is stored
+     */
+    @Test(expected = BallException.class)
+    public void shouldThrowWhenDeliverIntermediateAfterFinalWithoutStoredError() {
+        when(mRequest.isIntermediateResponseDelivered()).thenReturn(false);
+        when(mRequest.isFinalResponseDelivered()).thenReturn(true);
+        when(mResponse.isIntermediate()).thenReturn(true);
+        when(mResponse.isSuccess()).thenReturn(true);
+        when(mResponse.getResponseSource()).thenReturn(BallResponse.ResponseSource.CACHE);
+
+        mResponseDelivery.postResponse(mRequest, mResponse);
     }
 }

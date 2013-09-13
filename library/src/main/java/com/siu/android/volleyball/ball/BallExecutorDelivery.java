@@ -37,7 +37,8 @@ public class BallExecutorDelivery implements BallResponseDelivery {
     public static final String MARKER_INTERMEDIATE_RESPONSE_ALREADY_DELIVERED = "intermediate-response-already-delivered-exit";
     public static final String MARKER_DONE_WITH_RESPONSE_FROM = "done-with-response-from-%s";
     public static final String MARKER_ERROR_IN_FINAL_RESPONSE_LET_INTERMEDIATE_CONTINUE = "error-in-final-response-let-intermediate-continue";
-    public static final String DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE = "done-with-intermediate-empty-response";
+    public static final String MARKER_DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE = "done-with-intermediate-empty-response";
+    public static final String MARKER_DONE_WITH_INTERMEDIATE_RESPONSE = "done-with-intermediate-response";
 
     /**
      * Used for posting responses, typically to the main thread.
@@ -113,12 +114,12 @@ public class BallExecutorDelivery implements BallResponseDelivery {
 
             // final response already delivered,
             if (mRequest.isFinalResponseDelivered()) {
-                if(mRequest.getFinalResponseError() == null) {
-                    throw new BallException("Final response error can't be null when empty response is the last delivered response");
+                if (mRequest.getFinalResponseError() == null) {
+                    throw new BallException("Final response error can't be null when intermediate response is the last delivered response");
                 }
 
                 mRequest.deliverError(mRequest.getFinalResponseError());
-                mRequest.finish(DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE); //TODO: ADD SOURCE ?
+                mRequest.finish(MARKER_DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE); //TODO: ADD SOURCE ?
             }
         }
     }
@@ -167,8 +168,19 @@ public class BallExecutorDelivery implements BallResponseDelivery {
 
                 mRequest.deliverIntermediateResponse(mResponse.getResult(), mResponse.getResponseSource());
 
-                if (mRunnable != null) {
-                    mRunnable.run();
+                // intermediate response coming from local while the network response was already delivered as an error
+                if (mRequest.isFinalResponseDelivered()) {
+                    if (mRequest.getFinalResponseError() == null) {
+                        throw new BallException("Final response error can't be null when intermediate response is the last delivered response");
+                    }
+
+                    // deliver the error after the intermediate response to respect the delivering lifecycle
+                    mRequest.deliverError(mRequest.getFinalResponseError());
+                    mRequest.finish(MARKER_DONE_WITH_INTERMEDIATE_RESPONSE);
+                } else {
+                    if (mRunnable != null) {
+                        mRunnable.run();
+                    }
                 }
             }
 
