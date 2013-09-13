@@ -41,14 +41,14 @@ public abstract class CompleteRequest<T> extends BallRequest<T> {
 
             @Override
             public void saveLocalResponse(T response) {
-                CompleteRequest.this.saveLocalResponse(response);
+                CompleteRequest.this.saveNetworkResponseToLocal(response);
             }
         };
     }
 
     protected abstract T getLocalResponse();
 
-    public abstract void saveLocalResponse(T response);
+    public abstract void saveNetworkResponseToLocal(T response);
 
 
     /* NETWORK */
