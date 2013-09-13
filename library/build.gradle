@@ -65,3 +65,7 @@ task unitTest(type:Test, dependsOn: assemble) {
 }
 
 check.dependsOn unitTest
+
+task jar(type: Jar) {
+    from android.sourceSets.main.java
+}
