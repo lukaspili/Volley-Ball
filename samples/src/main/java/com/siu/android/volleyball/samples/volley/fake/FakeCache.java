@@ -26,11 +26,11 @@ public class FakeCache implements Cache {
         Entry entry = new Entry();
 
         if (!mExpired) {
-            entry.ttl = System.currentTimeMillis();
+            entry.ttl = System.currentTimeMillis() + 10000000 ;
         }
 
         if (!mSoftExpired) {
-            entry.softTtl = System.currentTimeMillis();
+            entry.softTtl = System.currentTimeMillis() + 10000000 ;
         }
 
         return entry;

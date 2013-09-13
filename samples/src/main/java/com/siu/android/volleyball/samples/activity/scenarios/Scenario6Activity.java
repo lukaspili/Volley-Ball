@@ -8,19 +8,20 @@ import com.siu.android.volleyball.toolbox.VolleyBall;
 import com.siu.android.volleyball.toolbox.VolleyBallConfig;
 
 /**
- * Scenario 1
+ * Scenario 6
  * <p/>
  * 1. Start the request
  * 2. Local thread returns valid response -> post an intermediate response
- * 3. Cache thread hits and returns a valid response -> post a final response
- * 4. End
+ * 3. Cache thread hits soft cache -> intermediate response ignored
+ * 4. Network thread returns valid response -> post a final response
+ * 5. End
  */
-public class Scenario1Activity extends ScenarioActivity {
+public class Scenario6Activity extends ScenarioActivity {
 
     @Override
     protected BallRequestQueue buildRequestQueue() {
         return VolleyBall.newRequestQueue(new VolleyBallConfig.Builder(this)
-                .cache(new FakeCache(true, false, false))
+                .cache(new FakeCache(true, false, true))
                 .network(new FakeNetwork())
                 .build());
     }

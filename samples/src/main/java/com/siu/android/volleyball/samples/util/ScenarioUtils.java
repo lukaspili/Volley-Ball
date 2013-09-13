@@ -5,7 +5,7 @@ package com.siu.android.volleyball.samples.util;
  */
 public class ScenarioUtils {
 
-    public static final void wait(int seconds) {
+    public static final void waitSeveralSeconds(int seconds) {
         try {
             Thread.sleep(seconds * 1000);
         } catch (InterruptedException e) {

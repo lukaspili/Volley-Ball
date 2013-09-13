@@ -1,4 +1,4 @@
-package com.siu.android.volleyball.samples.volley;
+package com.siu.android.volleyball.samples.volley.request;
 
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
@@ -64,7 +64,7 @@ public class CompleteEntryRequest extends CompleteRequest<List<Entry>> {
     }
 
     @Override
-    public void saveLocalResponse(List<Entry> entries) {
+    public void saveNetworkResponseToLocal(List<Entry> entries) {
         EntryDao.replaceAll(entries);
     }
 }

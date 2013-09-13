@@ -1,4 +1,4 @@
-package com.siu.android.volleyball.samples.activity;
+package com.siu.android.volleyball.samples.activity.scenarios;
 
 import android.app.Activity;
 import android.os.Bundle;

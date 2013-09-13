@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.Window;
 import android.widget.ListView;
 
+import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.siu.android.volleyball.BallResponse;
@@ -14,7 +15,8 @@ import com.siu.android.volleyball.samples.R;
 import com.siu.android.volleyball.samples.adapter.EntriesAdapter;
 import com.siu.android.volleyball.samples.model.Entry;
 import com.siu.android.volleyball.samples.util.SimpleLogger;
-import com.siu.android.volleyball.samples.volley.CompleteEntryRequest;
+import com.siu.android.volleyball.samples.volley.request.CompleteEntryRequest;
+import com.siu.android.volleyball.samples.volley.request.SampleRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,5 +83,29 @@ public class MainActivity extends Activity {
         );
 
         Application.getRequestQueue().add(entryRequest);
+
+        Application.getRequestQueue().add(new SampleRequest(Request.Method.GET, "http://some.url", new ResponseListener<Object>() {
+            @Override
+            public void onIntermediateResponse(Object response, BallResponse.ResponseSource responseSource) {
+                // intermediate response, such as from local database or soft cached
+            }
+
+            @Override
+            public void onFinalResponse(Object response, BallResponse.ResponseSource responseSource) {
+                // final response, which is the result from network request
+            }
+
+            @Override
+            public void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
+                // final response is identical to intermediate one (happens when intermediate is from soft cache and network response is not modified)
+            }
+
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                // network request error, in the same way than with volley
+            }
+        }
+        ));
     }
 }

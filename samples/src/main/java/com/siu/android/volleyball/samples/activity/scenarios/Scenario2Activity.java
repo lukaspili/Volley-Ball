@@ -1,7 +1,6 @@
 package com.siu.android.volleyball.samples.activity.scenarios;
 
 import com.siu.android.volleyball.BallRequestQueue;
-import com.siu.android.volleyball.samples.activity.ScenarioActivity;
 import com.siu.android.volleyball.samples.volley.fake.FakeCache;
 import com.siu.android.volleyball.samples.volley.fake.FakeNetwork;
 import com.siu.android.volleyball.samples.volley.request.ScenarioRequest;

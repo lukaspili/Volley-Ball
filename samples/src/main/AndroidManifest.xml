@@ -24,8 +24,36 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".activity.scenarios.Scenario1Activity"/>
-        <activity android:name=".activity.scenarios.Scenario2Activity"/>
+        <activity
+                android:name=".activity.scenarios.Scenario1Activity"
+                android:label="Scenario 1"/>
+        <activity
+                android:name=".activity.scenarios.Scenario2Activity"
+                android:label="Scenario 2"/>
+        <activity
+                android:name=".activity.scenarios.Scenario3Activity"
+                android:label="Scenario 3"/>
+        <activity
+                android:name=".activity.scenarios.Scenario4Activity"
+                android:label="Scenario 4"/>
+        <activity
+                android:name=".activity.scenarios.Scenario5Activity"
+                android:label="Scenario 5"/>
+        <activity
+                android:name=".activity.scenarios.Scenario6Activity"
+                android:label="Scenario 6"/>
+        <activity
+                android:name=".activity.scenarios.Scenario7Activity"
+                android:label="Scenario 7"/>
+        <activity
+                android:name=".activity.scenarios.Scenario8Activity"
+                android:label="Scenario 8"/>
+        <activity
+                android:name=".activity.scenarios.Scenario9Activity"
+                android:label="Scenario 9"/>
+        <activity
+                android:name=".activity.scenarios.Scenario10Activity"
+                android:label="Scenario 10"/>
     </application>
 
 </manifest>

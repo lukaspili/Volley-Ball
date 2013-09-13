@@ -8,5 +8,13 @@
     <string-array name="scenarios">
         <item>Scenario 1</item>
         <item>Scenario 2</item>
+        <item>Scenario 3</item>
+        <item>Scenario 4</item>
+        <item>Scenario 5</item>
+        <item>Scenario 6</item>
+        <item>Scenario 7</item>
+        <item>Scenario 8</item>
+        <item>Scenario 9</item>
+        <item>Scenario 10</item>
     </string-array>
 </resources>

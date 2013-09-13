@@ -1,11 +1,72 @@
 # Volley Ball
 
-Introducing Volley Ball for Android, an extension library built on top of Volley. For those who didn't hear about Volley, it's a networking library used by Google engineers in their Android apps and presented to public during the Google IO 2013.
+Introducing Volley Ball for Android, an extension library built on top of Volley. For those who didn't hear about Volley, it's a networking library used by Google engineers in their Android apps and presented to public during the Google IO 2013. You can find more about Volley in the Google IO talk: <http://www.youtube.com/watch?v=yhv8l9F44qo>.
 
-You can find more about Volley in the Google IO talk: <http://www.youtube.com/watch?v=yhv8l9F44qo>.
+## A quick introduction
+
+### Perform local and network request in parallel
+
+Perform the request in your activity / fragment :
+
+    mRequestQue.add(new SampleRequest(Request.Method.GET, "http://some.url", new ResponseListener<Object>() {
+        @Override
+        public void onIntermediateResponse(Object response, BallResponse.ResponseSource responseSource) {
+            // intermediate response, such as from local database or soft cached network response
+        }
+
+        @Override
+        public void onFinalResponse(Object response, BallResponse.ResponseSource responseSource) {
+            // final response, which is the network response
+        }
+
+        @Override
+        public void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
+            // final response is identical to intermediate one
+            // happens when intermediate is from soft cache and network response is identical (not modified)
+        }
+
+    }, new Response.ErrorListener() {
+        @Override
+        public void onErrorResponse(VolleyError error) {
+            // network response is an error, in the same way than with volley
+        }
+    }
+    ));
 
 
-## Why Volley Ball ?
+And the request looks like :
+
+    public class SampleRequest extends CompleteRequest<Object> {
+
+        public SampleRequest(int method, String url, ResponseListener<Object> responseListener, Response.ErrorListener errorListener) {
+            super(method, url, responseListener, errorListener);
+        }
+
+        @Override
+        protected Object getLocalResponse() {
+            // query your local database for example
+            // return the result or null if there is no result from database
+            return new Object();
+        }
+
+        @Override
+        public void saveNetworkResponseToLocal(Object response) {
+            // save the network response to the local database
+            // next time the request is performed the local response will return the result faster than the network request
+        }
+
+        @Override
+        protected BallResponse<Object> parseBallNetworkResponse(NetworkResponse response) {
+            // parse the result from the network request, in the same way than with volley
+            return Response.success(new Object());
+        }
+    }
+
+
+
+## The deeper explanation
+
+### Why Volley Ball ?
 
 The Android API and its ecosystem offer a lot of great libraries for working with background threads and networking task: AsyncTasks, Loaders, Robospice, Retrofit and so on. Volley is great for performing network tasks very easily. However, none of these libraries offer a full support for a very common use case we developers encounter while making Android apps and working with some web service (REST or not): Display some data from www.foobar.com/api/data (in whatever format we want).
 
@@ -42,9 +103,12 @@ In Volley Ball, a request is composed of two kind of "sub" request:
 - Network request.
 
 
-## Different scenarios
+### Different scenarios
 
-Volley Ball introduces concurrency with parallel worker threads, something the original Volley library does not have (basically, it's a sequential process of: request -> cache -> maybe response -> network -> response). With Volley Ball we have the local worker thread and the cache/network one running in parallel, which result in a more complicated logic. Let's see the possible scenarios when running a volley ball request and its implications.
+Volley Ball introduces concurrency with parallel worker threads, something the original Volley library does not have (basically, it's a sequential process of: request -> cache -> maybe response -> network -> response). With Volley Ball we have the local worker thread and the cache/network one running in parallel, which result in a more complicated logic.
+
+Let's see the possible scenarios when running a volley ball request and its implications. These scenarios are tested in working conditions in the sample project.
+
 
 NB1: Each time we start a request, the request queue dispatches it to the two following worker thread that will run in parallel:
 
@@ -102,27 +166,14 @@ Scenario 6 (points 2 and 3 can be inverted)
 2. Local thread returns valid response -> post an intermediate response
 3. Cache thread hits soft cache -> intermediate response ignored
 4. Network thread returns valid response -> post a final response
-5. End 
-
-
-Soft cache // 304 response
-
-Scenario 7 
-
-1. Start the request
-2. Local thread returns valid response -> post an intermediate response
-3. Cache thread hits soft cache -> intermediate response
-4. ignored
-4. Network thread returns 304 response not modified -> post a final identical response
-5. End 
-
+5. End
 
 Scenario 7
 
 1. Start the request
-2. Local thread returns valid response -> post an intermediate response
-3. Cache thread hits soft cache -> intermediate response ignored
-4. Network thread returns 304 response not modified -> post a final identical response
+2. Cache thread hits soft cache -> post an intermediate response
+3. Local thread returns valid response -> intermediate response ignored
+4. Network thread returns valid response -> post a final response
 5. End 
 
 
@@ -131,38 +182,40 @@ Scenario 8 (points 2 and 3 can be inverted)
 1. Start the request
 2. Local thread returns valid response -> post an intermediate response
 3. Cache thread hits soft cache -> intermediate response ignored
-4. Network thread returns valid response  -> post a final response
+4. Network thread returns 304 response not modified -> post a final identical response
 5. End 
 
-
-Scenario 1
-
-1. Start the request
-
-
-Scenario 1
+Scenario 9
 
 1. Start the request
+2. Cache thread misses
+3. Network thread returns error response  -> wait for local response
+4. Local thread returns valid response -> post an intermediate response
+5. Post the network error afterwards
+6. End
 
-
-Scenario 1
+Scenario 10
 
 1. Start the request
+2. Cache thread misses
+3. Network thread returns error response  -> wait for local response
+4. Local thread returns empty response -> post the network error response
+5. End
 
 
 
 
-
-
-## Misc
+### Logs
 
 Enable detailled request logs in the same way than with Volley : `adb shell setprop log.tag.Volley VERBOSE`
 
 
-## Structure
+### Structure
 
 Volley Ball is built on top of Volley, which is included as a git submodule from <https://android.googlesource.com/platform/frameworks/volley>. Sadly, Volley uses several times the private and default scopes which obligated me to copy past some pieces of code. It's documented in the source code.
 
+
+### Tests
 
 You can run the tests with the command line: `./gradlew library:unitTest`
 

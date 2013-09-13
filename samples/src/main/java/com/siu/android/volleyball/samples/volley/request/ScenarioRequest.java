@@ -16,29 +16,34 @@ public class ScenarioRequest extends CompleteRequest<String> {
     public static final String URL = "http://foo.com/bar";
 
     protected int mLocalWait;
-    protected int mNetworkWait;
+    protected int mCacheAndNetworkWait;
+    protected String mLocalResponse = "response";
 
-    public ScenarioRequest(ResponseListener<String> responseListener, Response.ErrorListener errorListener, int localWait, int networkWait) {
+    public ScenarioRequest(ResponseListener<String> responseListener, Response.ErrorListener errorListener, int localWait, int cacheAndNetworkWait) {
         super(METHOD, URL, responseListener, errorListener);
 
         mLocalWait = localWait;
-        mNetworkWait = networkWait;
+        mCacheAndNetworkWait = cacheAndNetworkWait;
     }
 
     @Override
     protected String getLocalResponse() {
-        ScenarioUtils.wait(mLocalWait);
-        return "response";
+        ScenarioUtils.waitSeveralSeconds(mLocalWait);
+        return mLocalResponse;
     }
 
     @Override
-    public void saveLocalResponse(String response) {
+    public void saveNetworkResponseToLocal(String response) {
         // do nothing
     }
 
     @Override
     protected BallResponse<String> parseBallNetworkResponse(NetworkResponse response) {
-        ScenarioUtils.wait(mNetworkWait);
+        ScenarioUtils.waitSeveralSeconds(mCacheAndNetworkWait);
         return BallResponse.success("response");
+    }
+
+    public void setLocalResponse(String localResponse) {
+        mLocalResponse = localResponse;
     }
 }
