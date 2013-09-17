@@ -297,7 +297,9 @@ Enable detailled request logs in the same way than with Volley : `adb shell setp
 
 ### Structure
 
-Volley Ball is built on top of Volley, which is included as a git submodule from <https://android.googlesource.com/platform/frameworks/volley>. Sadly, Volley uses several times the private and default scopes which obligated me to copy past some pieces of code. It's documented in the source code.
+Volley Ball is built on top of Volley, which is included as a git submodule from <https://android.googlesource.com/platform/frameworks/volley>.
+Sadly, Volley uses several times the private and default scopes which obligated me to copy past some pieces of code. It's documented in the source code.
+Current version of the Volley sub module: 4c2fe13.
 
 
 ### Tests
