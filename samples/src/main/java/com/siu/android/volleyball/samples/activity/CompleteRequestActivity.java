@@ -21,15 +21,13 @@ import com.siu.android.volleyball.samples.volley.request.SampleRequest;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity {
+public class CompleteRequestActivity extends Activity {
 
     private ListView mListView;
     private EntriesAdapter mEntriesAdapter;
 
     private List<Entry> mEntries = new ArrayList<Entry>();
 
-    private boolean mLoadingFromLocalFinished;
-    private boolean mLoadingFromWebFinished;
     private boolean mLoadingFromWebSuccessful;
 
     @Override
@@ -64,48 +62,33 @@ public class MainActivity extends Activity {
             @Override
             public void onFinalResponse(List<Entry> response, BallResponse.ResponseSource responseSource) {
                 SimpleLogger.d("remote resposne %s", response);
+
+                // the request is finished successfuly
                 setProgressBarIndeterminateVisibility(false);
+                mLoadingFromWebSuccessful = true;
             }
 
             @Override
             public void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
                 SimpleLogger.d("remote response identical to intermediate");
+
+                // the request is finished successfuly
                 setProgressBarIndeterminateVisibility(false);
+                mLoadingFromWebSuccessful = true;
             }
+
 
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 SimpleLogger.d("error resposne %s", error.getMessage());
+
+                // the request is finished with a failure
                 setProgressBarIndeterminateVisibility(false);
             }
         }
         );
 
         Application.getRequestQueue().add(entryRequest);
-
-        Application.getRequestQueue().add(new SampleRequest(Request.Method.GET, "http://some.url", new ResponseListener<Object>() {
-            @Override
-            public void onIntermediateResponse(Object response, BallResponse.ResponseSource responseSource) {
-                // intermediate response, such as from local database or soft cached
-            }
-
-            @Override
-            public void onFinalResponse(Object response, BallResponse.ResponseSource responseSource) {
-                // final response, which is the result from network request
-            }
-
-            @Override
-            public void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
-                // final response is identical to intermediate one (happens when intermediate is from soft cache and network response is not modified)
-            }
-
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                // network request error, in the same way than with volley
-            }
-        }
-        ));
     }
 }

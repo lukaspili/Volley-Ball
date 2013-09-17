@@ -8,60 +8,145 @@ Introducing Volley Ball for Android, an extension library built on top of Volley
 
 Perform the request in your activity / fragment :
 
-    mRequestQue.add(new SampleRequest(Request.Method.GET, "http://some.url", new ResponseListener<Object>() {
-        @Override
-        public void onIntermediateResponse(Object response, BallResponse.ResponseSource responseSource) {
-            // intermediate response, such as from local database or soft cached network response
-        }
-
-        @Override
-        public void onFinalResponse(Object response, BallResponse.ResponseSource responseSource) {
-            // final response, which is the network response
-        }
-
-        @Override
-        public void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
-            // final response is identical to intermediate one
-            // happens when intermediate is from soft cache and network response is identical (not modified)
-        }
-
-    }, new Response.ErrorListener() {
-        @Override
-        public void onErrorResponse(VolleyError error) {
-            // network response is an error, in the same way than with volley
-        }
-    }
-    ));
-
-
-And the request looks like :
-
-    public class SampleRequest extends CompleteRequest<Object> {
-
-        public SampleRequest(int method, String url, ResponseListener<Object> responseListener, Response.ErrorListener errorListener) {
-            super(method, url, responseListener, errorListener);
-        }
-
-        @Override
-        protected Object getLocalResponse() {
-            // query your local database for example
-            // return the result or null if there is no result from database
-            return new Object();
-        }
-
-        @Override
-        public void saveNetworkResponseToLocal(Object response) {
-            // save the network response to the local database
-            // next time the request is performed the local response will return the result faster than the network request
-        }
-
-        @Override
-        protected BallResponse<Object> parseBallNetworkResponse(NetworkResponse response) {
-            // parse the result from the network request, in the same way than with volley
-            return Response.success(new Object());
-        }
+```java
+mRequestQue.add(new SampleRequest(Request.Method.GET, "http://some.url", new ResponseListener<Object>() {
+    @Override
+    public void onIntermediateResponse(Object response, BallResponse.ResponseSource responseSource) {
+        // intermediate response, such as from local database or soft cached network response
     }
 
+    @Override
+    public void onFinalResponse(Object response, BallResponse.ResponseSource responseSource) {
+        // final response, which is the network response
+    }
+
+    @Override
+    public void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
+        // final response is identical to intermediate one
+        // happens when intermediate is from soft cache and network response is identical (not modified)
+    }
+
+}, new Response.ErrorListener() {
+    @Override
+    public void onErrorResponse(VolleyError error) {
+        // network response is an error, in the same way than with volley
+    }
+}
+));
+```
+
+
+And the request class looks like :
+
+```java
+public class SampleRequest extends CompleteRequest<Object> {
+
+    public SampleRequest(int method, String url, ResponseListener<Object> responseListener, Response.ErrorListener errorListener) {
+        super(method, url, responseListener, errorListener);
+    }
+
+    @Override
+    protected Object getLocalResponse() {
+        // query your local database for example
+        // return the result or null if there is no result from database
+        return new Object();
+    }
+
+    @Override
+    public void saveNetworkResponseToLocal(Object response) {
+        // save the network response to the local database
+        // next time the request is performed the local response will return the result faster than the network request
+    }
+
+    @Override
+    protected BallResponse<Object> parseBallNetworkResponse(NetworkResponse response) {
+        // parse the result from the network request, in the same way than with volley
+        return Response.success(new Object());
+    }
+}
+```
+
+
+### Perform network-only and/or local-only request
+
+You can still use Volleball the same way you would use Volley, with a network-only request and exact same features (cache and stuff).
+You need to extend NetowkrRequest for that :
+
+```java
+public class MyNetworkRequest extends NetworkRequest<String> {
+
+    public MyNetworkRequest(SingleResponseListener<String> listener, ErrorListener errorListener) {
+        super(Method.GET, "some.url.com", listener, errorListener);
+    }
+
+    @Override
+    protected BallResponse<String> parseBallNetworkResponse(NetworkResponse response) {
+        return BallResponse.success("some response that you would parse from response.data", HttpHeaderParser.parseCacheHeaders(response));
+    }
+}
+```
+
+
+You can even use Volleyball to perform non-networking task outside of UI thread, using the powerful thread dispatching of Volley.
+You need to extend LocalRequest for that. As you can see, the main difference is that the local request does not have a HTTP method, a url or an error listener. It's up to you to catch any exception and return an adequate result.
+One of the purpose of this kind of request is to query your local database outside of UI thread, which is always a good practice.
+
+```java
+public class SampleLocalRequest extends LocalRequest<String> {
+
+    public SampleLocalRequest(ResponseListener<String> responseListener) {
+        super(responseListener);
+    }
+
+    @Override
+    public String performLocal() {
+        // outside of UI thread
+        return "something if you want";
+    }
+}
+```
+
+
+For either network-only or local-only request, you run the request in the following way, with a simplified response listener:
+
+```java
+// network request
+NetworkRequest request = new SampleNetworkRequest(Request.Method.GET, "some.url.com", new SingleResponseListener<String>() {
+    @Override
+    public void onResponse(String response) {
+        SimpleLogger.d("response from request %s", response);
+    }
+}, new Response.ErrorListener() {
+    @Override
+    public void onErrorResponse(VolleyError error) {
+        SimpleLogger.d("error from request %s", error.getMessage());
+    }
+});
+Application.getRequestQueue().add(request);
+
+
+// local request that returns something
+LocalRequest localRequest = new SampleLocalRequest(new SingleResponseListener<String>() {
+    @Override
+    public void onResponse(String response) {
+        SimpleLogger.d("response from request %s", response);
+    }
+});
+mRequestQueue.add(localRequest);
+
+
+// local request that returns nothing
+LocalRequest localRequestWithoutResult = new SampleLocalNoResultRequest();
+mRequestQueue.add(localRequestWithoutResult);
+```
+
+### Samples
+
+You can checkout the samples project for the full code source, and specifically the following three activities:
+
+- CompleteRequestActivity
+- NetworkRequestActivity
+- LocalRequestActivity
 
 
 ## The deeper explanation
@@ -239,3 +324,4 @@ You can run the tests with the command line: `./gradlew library:unitTest`
 - cancellation 
 - local and network only request
 - marker log constant methods
+- local request final ?

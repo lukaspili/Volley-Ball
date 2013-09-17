@@ -3,7 +3,7 @@ package com.siu.android.volleyball.samples.volley.request;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
 import com.siu.android.volleyball.BallResponse;
-import com.siu.android.volleyball.complete.CompleteRequest;
+import com.siu.android.volleyball.request.CompleteRequest;
 import com.siu.android.volleyball.response.ResponseListener;
 
 /**

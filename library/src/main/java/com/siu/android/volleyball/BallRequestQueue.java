@@ -25,6 +25,7 @@ import com.android.volley.ExecutorDelivery;
 import com.android.volley.Network;
 import com.android.volley.NetworkDispatcher;
 import com.android.volley.Request;
+import com.android.volley.RequestQueue;
 import com.android.volley.ResponseDelivery;
 import com.android.volley.VolleyLog;
 import com.siu.android.volleyball.ball.BallExecutorDelivery;
@@ -47,7 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * a parsed response on the main thread.
  */
 @SuppressWarnings("rawtypes")
-public class BallRequestQueue {
+public class BallRequestQueue { //extends RequestQueue {
 
     /** Used for generating monotonically-increasing sequence numbers for requests. */
     private AtomicInteger mSequenceGenerator = new AtomicInteger();
@@ -281,6 +282,10 @@ public class BallRequestQueue {
             return request;
         }
     }
+
+//    public Request add(Request request) {
+//
+//    }
 
     /**
      * Called from {@link com.android.volley.Request#finish(String)}, indicating that processing of the given request

@@ -7,8 +7,12 @@ buildscript {
     }
 }
 
-//apply plugin: 'java'
 apply plugin: 'android-library'
+apply plugin: 'maven'
+
+group 'com.siu.android.volleyball'
+archivesBaseName = 'volleyball'
+version 0.1
 
 repositories {
     mavenCentral()
@@ -34,6 +38,11 @@ sourceSets {
     }
 }
 
+configurations {
+    unitTestCompile.extendsFrom runtime
+    unitTestRuntime.extendsFrom unitTestCompile
+}
+
 dependencies {
     compile project(':library:volley')
     compile 'commons-io:commons-io:2.4'
@@ -53,19 +62,51 @@ dependencies {
     instrumentTestCompile 'org.robolectric:robolectric:2.1.1'
 }
 
-configurations {
-    unitTestCompile.extendsFrom runtime
-    unitTestRuntime.extendsFrom unitTestCompile
-}
-
-task unitTest(type:Test, dependsOn: assemble) {
+task unitTest(type: Test, dependsOn: assemble) {
     description = "run unit tests"
     testClassesDir = project.sourceSets.unitTest.output.classesDir
     classpath = project.sourceSets.unitTest.runtimeClasspath
 }
-
 check.dependsOn unitTest
 
-task jar(type: Jar) {
-    from android.sourceSets.main.java
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository url: 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath
+        }
+    }
 }
+task install(dependsOn: uploadArchives)
+
+
+//apply plugin: 'maven-publish'
+//
+
+//evaluationDependsOn(':library:volley')
+//task sourceJar(type: Jar) {
+//    println getRootProject().subprojects.findAll{it.name == 'volleyy'}.name
+//
+//    evaluationDependsOn(':library:volley')
+//    from android.sourceSets.main.java
+//    from getRootProject().subprojects.findAll{it.name == 'volley'}.sourceSets.java
+//    classifier "with-volley"
+//}
+//
+//artifacts {
+//    archives(sourceJar)
+//}
+
+
+
+//
+//publishing {
+//    publications {
+//        maven(MavenPublication) {
+//            groupId 'org.gradle.sample'
+//            artifactId 'project1-sample'
+//            version '1.1'
+//
+//            artifact 'test'
+//        }
+//    }
+//}

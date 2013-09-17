@@ -9,17 +9,17 @@ import com.siu.android.volleyball.exception.BallException;
 public abstract class SingleResponseListener<T> implements ResponseListener<T> {
 
     @Override
-    public void onIntermediateResponse(T response, BallResponse.ResponseSource responseSource) {
+    public final void onIntermediateResponse(T response, BallResponse.ResponseSource responseSource) {
         throw new BallException("Single response listener does not have intermediate response");
     }
 
     @Override
-    public void onFinalResponse(T response, BallResponse.ResponseSource responseSource) {
+    public final void onFinalResponse(T response, BallResponse.ResponseSource responseSource) {
         onResponse(response);
     }
 
     @Override
-    public void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
+    public final void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
         throw new BallException("Single response listener does not have intermediate response");
     }
 

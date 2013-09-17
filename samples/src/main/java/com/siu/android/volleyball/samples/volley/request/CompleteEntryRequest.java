@@ -7,7 +7,7 @@ import com.android.volley.toolbox.HttpHeaderParser;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.siu.android.volleyball.BallResponse;
-import com.siu.android.volleyball.complete.CompleteRequest;
+import com.siu.android.volleyball.request.CompleteRequest;
 import com.siu.android.volleyball.response.ResponseListener;
 import com.siu.android.volleyball.samples.database.EntryDao;
 import com.siu.android.volleyball.samples.model.Entry;
@@ -29,7 +29,6 @@ public class CompleteEntryRequest extends CompleteRequest<List<Entry>> {
     public CompleteEntryRequest(ResponseListener<List<Entry>> responseListener, Response.ErrorListener errorListener) {
         super(Method.GET, URL, responseListener, errorListener);
     }
-
 
     /*
         Network processing
@@ -65,6 +64,7 @@ public class CompleteEntryRequest extends CompleteRequest<List<Entry>> {
 
     @Override
     public void saveNetworkResponseToLocal(List<Entry> entries) {
+        // replace the previous old content with the new one retrieved from the network
         EntryDao.replaceAll(entries);
     }
 }

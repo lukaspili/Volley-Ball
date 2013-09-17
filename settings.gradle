@@ -1,1 +1,2 @@
+rootProject.name = 'volleyball'
 include ':samples', ':library', ':library:volley', ':test'
