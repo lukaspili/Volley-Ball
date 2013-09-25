@@ -269,13 +269,17 @@ public class BallRequestQueue { //extends RequestQueue {
             return request;
         }
 
-        // at this point request processes either cache or local
-        // adding to network queue will be done from local or cache dispatcher
+        // network with local
         if (request.shouldProcessLocal()) {
             mLocalQueue.add(request);
         }
 
-        if (request.shouldCache()) {
+        // network without cache, add to network directly
+        if (!request.shouldCache()) {
+            mNetworkQueue.add(request);
+        }
+        //network with cache
+        else {
             // Insert request into stage if there's already a request with the same cache key in flight.
             synchronized (mWaitingRequests) {
                 String cacheKey = request.getCacheKey();

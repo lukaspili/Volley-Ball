@@ -6,6 +6,7 @@ import com.siu.android.volleyball.BallResponse;
 import com.siu.android.volleyball.request.CompleteRequest;
 import com.siu.android.volleyball.response.ResponseListener;
 import com.siu.android.volleyball.samples.util.ScenarioUtils;
+import com.siu.android.volleyball.samples.util.SimpleLogger;
 
 /**
  * Created by lukas on 9/3/13.
@@ -35,6 +36,7 @@ public class ScenarioRequest extends CompleteRequest<String> {
     @Override
     public void saveNetworkResponseToLocal(String response) {
         // do nothing
+        SimpleLogger.d("save network to local");
     }
 
     @Override

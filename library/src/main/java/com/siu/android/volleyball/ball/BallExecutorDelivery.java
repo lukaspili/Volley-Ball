@@ -120,11 +120,15 @@ public class BallExecutorDelivery implements BallResponseDelivery {
 
         @Override
         public void run() {
-            if (mRequest.isFinished() || mRequest.areAllIntermediateResponsesDelivered()) {
+            // ignore if:
+            // - request finished
+            // - intermediate response delivered with success
+            // - all intermedaite responses delivered
+            if (mRequest.isFinished() || mRequest.isIntermediateResponseDelivered()) {
                 return;
             }
 
-            mRequest.markIntermediateResponseDelivered(mResponseSource);
+            mRequest.setIntermediateResponseDelivered(true);
 
             // final response already delivered,
             if (mRequest.isFinalResponseDelivered()) {
@@ -136,13 +140,12 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                 mRequest.finish(MARKER_DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE); //TODO: ADD SOURCE ?
             }
 
-            // else forward network if need
-            else if (mNetworkQueue != null) {
-                mNetworkQueue.put(mRequest);
-            }
+//            // else forward network if need
+//            else if (mNetworkQueue != null) {
+//                mNetworkQueue.put(mRequest);
+//            }
         }
     }
-
 
     @SuppressWarnings("rawtypes")
     protected static class ResponseDeliveryRunnable implements Runnable {
@@ -173,13 +176,19 @@ public class BallExecutorDelivery implements BallResponseDelivery {
 
             // intermediate response from local or cache
             if (mResponse.isIntermediate()) {
-                if (mRequest.isIntermediateResponseDeliveredWithSuccess()) {
+
+                // forward to network if need
+                if (mNetworkQueue != null) {
+                    mNetworkQueue.put(mRequest);
+                }
+
+                if (mRequest.isIntermediateResponseDelivered()) {
                     mRequest.addMarker(MARKER_INTERMEDIATE_RESPONSE_ALREADY_DELIVERED);
                     return;
                 }
 
-                mRequest.setIntermediateResponseDeliveredWithSuccess(true);
-                mRequest.markIntermediateResponseDelivered(mResponse.getResponseSource());
+                mRequest.setIntermediateResponseDelivered(true);
+//                mRequest.markIntermediateResponseDelivered(mResponse.getResponseSource());
 
                 // errors come only from network response, we don't have error management for local or cache responses
                 if (!mResponse.isSuccess()) {
@@ -197,10 +206,6 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                     // deliver the error after the intermediate response to respect the delivering lifecycle
                     mRequest.deliverError(mRequest.getFinalResponseError());
                     mRequest.finish(MARKER_DONE_WITH_INTERMEDIATE_RESPONSE);
-                } else {
-                    if (mNetworkQueue != null) {
-                        mNetworkQueue.put(mRequest);
-                    }
                 }
             }
 
@@ -217,7 +222,7 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                     }
 
                 } else {
-                    if (mRequest.areAllIntermediateResponsesDelivered()) {
+                    if (mRequest.isIntermediateResponseDelivered()) {
                         mRequest.deliverError(mResponse.getError());
                     } else {
                         // let the request continue if network response failed and there is a local request processing
@@ -234,6 +239,5 @@ public class BallExecutorDelivery implements BallResponseDelivery {
             }
         }
     }
-
 
 }

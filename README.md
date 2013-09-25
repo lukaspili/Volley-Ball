@@ -284,7 +284,7 @@ Scenario 10
 1. Start the request
 2. Cache thread misses
 3. Network thread returns error response  -> wait for local response
-4. Local thread returns empty response -> post the network error response
+4. Local thread returns empty response -> post the network error response and ignore the empty local
 5. End
 
 

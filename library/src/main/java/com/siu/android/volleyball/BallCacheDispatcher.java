@@ -116,7 +116,8 @@ public class BallCacheDispatcher extends Thread {
                 if (entry == null) {
                     request.addMarker("cache-miss");
                     // Cache miss; send off to the network dispatcher.
-                    mDelivery.postEmptyIntermediateResponse(request, BallResponse.ResponseSource.CACHE);
+                    //mDelivery.postEmptyIntermediateResponse(request, BallResponse.ResponseSource.CACHE);
+                    mNetworkQueue.put(request);
                     continue;
                 }
 
@@ -124,7 +125,8 @@ public class BallCacheDispatcher extends Thread {
                 if (entry.isExpired()) {
                     request.addMarker("cache-hit-expired");
                     request.setCacheEntry(entry);
-                    mDelivery.postEmptyIntermediateResponse(request, BallResponse.ResponseSource.CACHE);
+                    //mDelivery.postEmptyIntermediateResponse(request, BallResponse.ResponseSource.CACHE);
+                    mNetworkQueue.put(request);
                     continue;
                 }
 
