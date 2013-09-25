@@ -100,16 +100,7 @@ public class LocalDispatcher extends Thread {
 
             // Post the intermediate response back to the user and have
             // the delivery then forward the request along to the network.
-            mDelivery.postResponse(request, response, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        mNetworkQueue.put(request);
-                    } catch (InterruptedException e) {
-                        // Not much we can do about this.
-                    }
-                }
-            });
+            mDelivery.postResponseAndForwardToNetwork(request, response);
 
         } catch (InterruptedException e) {
             // We may have been interrupted because it was time to quit.

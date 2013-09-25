@@ -57,6 +57,10 @@ public abstract class BallRequest<T> extends Request<T> {
      */
     protected volatile boolean mFinished = false;
 
+    private boolean mLocalIntermediateResponseDelivered = false;
+    private boolean mCacheIntermediateResponseDelivered = false;
+    private boolean mIntermediateResponseDeliveredWithSuccess = false;
+
 
     protected BallRequest(int method, String url, Response.ErrorListener errorListener) {
         super(method, url, errorListener);
@@ -233,13 +237,13 @@ public abstract class BallRequest<T> extends Request<T> {
         this.mFinalResponseDelivered = finalResponseDelivered;
     }
 
-    public boolean isIntermediateResponseDelivered() {
-        return mIntermediateResponseDelivered;
-    }
-
-    public void setIntermediateResponseDelivered(boolean intermediateResponseDelivered) {
-        this.mIntermediateResponseDelivered = intermediateResponseDelivered;
-    }
+//    public boolean isIntermediateResponseDelivered() {
+//        return mIntermediateResponseDelivered;
+//    }
+//
+//    public void setIntermediateResponseDelivered(boolean intermediateResponseDelivered) {
+//        this.mIntermediateResponseDelivered = intermediateResponseDelivered;
+//    }
 
     public boolean isFinished() {
         return mFinished;
@@ -257,5 +261,36 @@ public abstract class BallRequest<T> extends Request<T> {
         mFinalResponseError = finalResponseError;
     }
 
+    public boolean areAllIntermediateResponsesDelivered() {
+        return mLocalIntermediateResponseDelivered && mCacheIntermediateResponseDelivered;
+    }
 
+    public void markIntermediateResponseDelivered(BallResponse.ResponseSource source) {
+        switch (source) {
+            case LOCAL:
+                if (mLocalIntermediateResponseDelivered) {
+                    throw new BallException("local intermediate response already delivered");
+                }
+
+                mLocalIntermediateResponseDelivered = true;
+                break;
+            case CACHE:
+                if (mCacheIntermediateResponseDelivered) {
+                    throw new BallException("cache intermediate response already delivered");
+                }
+
+                mCacheIntermediateResponseDelivered = true;
+                break;
+            default:
+                throw new BallException("mark intermediate response delivered from invalid source");
+        }
+    }
+
+    public boolean isIntermediateResponseDeliveredWithSuccess() {
+        return mIntermediateResponseDeliveredWithSuccess;
+    }
+
+    public void setIntermediateResponseDeliveredWithSuccess(boolean intermediateResponseDeliveredWithSuccess) {
+        mIntermediateResponseDeliveredWithSuccess = intermediateResponseDeliveredWithSuccess;
+    }
 }

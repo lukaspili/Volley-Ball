@@ -100,7 +100,7 @@ public class LocalDispatcherTest {
 
                 return false;
             }
-        }), Mockito.notNull(Runnable.class));
+        }));
         Mockito.verifyNoMoreInteractions(mResponseDelivery);
     }
 

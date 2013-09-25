@@ -3,6 +3,7 @@ package com.siu.android.volleyball.samples.volley.request;
 import com.android.volley.Response;
 import com.siu.android.volleyball.request.LocalRequest;
 import com.siu.android.volleyball.response.ResponseListener;
+import com.siu.android.volleyball.response.SingleResponseListener;
 import com.siu.android.volleyball.samples.util.ScenarioUtils;
 
 /**
@@ -11,7 +12,7 @@ import com.siu.android.volleyball.samples.util.ScenarioUtils;
  */
 public class SampleLocalRequest extends LocalRequest<String> {
 
-    public SampleLocalRequest(ResponseListener<String> responseListener) {
+    public SampleLocalRequest(SingleResponseListener<String> responseListener) {
         super(responseListener);
     }
 

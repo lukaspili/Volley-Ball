@@ -26,11 +26,13 @@ public interface BallResponseDelivery {
      */
     public void postResponse(BallRequest<?> request, BallResponse<?> response);
 
-    /**
-     * Parses a response from the network or cache and delivers it. The provided
-     * Runnable will be executed after delivery.
-     */
-    public void postResponse(BallRequest<?> request, BallResponse<?> response, Runnable runnable);
+    public void postResponseAndForwardToNetwork(BallRequest<?> request, BallResponse<?> response);
+
+//    /**
+//     * Parses a response from the network or cache and delivers it. The provided
+//     * Runnable will be executed after delivery.
+//     */
+//    public void postResponse(BallRequest<?> request, BallResponse<?> response, Runnable runnable);
 
     /**
      * Posts an error for the given request.

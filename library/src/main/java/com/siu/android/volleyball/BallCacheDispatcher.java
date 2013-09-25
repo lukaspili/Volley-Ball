@@ -20,16 +20,13 @@ import android.os.Process;
 
 import com.android.volley.Cache;
 import com.android.volley.NetworkResponse;
-import com.android.volley.Request;
-import com.android.volley.Response;
-import com.android.volley.ResponseDelivery;
 import com.android.volley.VolleyLog;
 
 import java.util.concurrent.BlockingQueue;
 
 /**
  * Provides a thread for performing cache triage on a queue of requests.
- *
+ * <p/>
  * Requests added to the specified cache queue are resolved from cache.
  * Any deliverable response is posted back to the caller via a
  * {@link com.android.volley.ResponseDelivery}.  Cache misses and responses that require
@@ -41,29 +38,39 @@ public class BallCacheDispatcher extends Thread {
 
     private static final boolean DEBUG = VolleyLog.DEBUG;
 
-    /** The queue of requests coming in for triage. */
+    /**
+     * The queue of requests coming in for triage.
+     */
     private final BlockingQueue<BallRequest> mCacheQueue;
 
-    /** The queue of requests going out to the network. */
+    /**
+     * The queue of requests going out to the network.
+     */
     private final BlockingQueue<BallRequest> mNetworkQueue;
 
-    /** The cache to read from. */
+    /**
+     * The cache to read from.
+     */
     private final Cache mCache;
 
-    /** For posting responses. */
+    /**
+     * For posting responses.
+     */
     private final BallResponseDelivery mDelivery;
 
-    /** Used for telling us to die. */
+    /**
+     * Used for telling us to die.
+     */
     private volatile boolean mQuit = false;
 
     /**
      * Creates a new cache triage dispatcher thread.  You must call {@link #start()}
      * in order to begin processing.
      *
-     * @param cacheQueue Queue of incoming requests for triage
+     * @param cacheQueue   Queue of incoming requests for triage
      * @param networkQueue Queue to post requests that require network to
-     * @param cache Cache interface to use for resolution
-     * @param delivery Delivery interface to use for posting responses
+     * @param cache        Cache interface to use for resolution
+     * @param delivery     Delivery interface to use for posting responses
      */
     public BallCacheDispatcher(
             BlockingQueue<BallRequest> cacheQueue, BlockingQueue<BallRequest> networkQueue,
@@ -109,7 +116,7 @@ public class BallCacheDispatcher extends Thread {
                 if (entry == null) {
                     request.addMarker("cache-miss");
                     // Cache miss; send off to the network dispatcher.
-                    mNetworkQueue.put(request);
+                    mDelivery.postEmptyIntermediateResponse(request, BallResponse.ResponseSource.CACHE);
                     continue;
                 }
 
@@ -117,7 +124,7 @@ public class BallCacheDispatcher extends Thread {
                 if (entry.isExpired()) {
                     request.addMarker("cache-hit-expired");
                     request.setCacheEntry(entry);
-                    mNetworkQueue.put(request);
+                    mDelivery.postEmptyIntermediateResponse(request, BallResponse.ResponseSource.CACHE);
                     continue;
                 }
 
@@ -142,16 +149,7 @@ public class BallCacheDispatcher extends Thread {
 
                     // Post the intermediate response back to the user and have
                     // the delivery then forward the request along to the network.
-                    mDelivery.postResponse(request, response, new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                mNetworkQueue.put(request);
-                            } catch (InterruptedException e) {
-                                // Not much we can do about this.
-                            }
-                        }
-                    });
+                    mDelivery.postResponseAndForwardToNetwork(request, response);
                 }
 
             } catch (InterruptedException e) {

@@ -25,6 +25,7 @@ import com.siu.android.volleyball.BallResponseDelivery;
 import com.siu.android.volleyball.exception.BallException;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * Delivers responses and errors following the Ball request lifecycle of intermediate and final responses.
@@ -40,6 +41,8 @@ public class BallExecutorDelivery implements BallResponseDelivery {
     public static final String MARKER_DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE = "done-with-intermediate-empty-response";
     public static final String MARKER_DONE_WITH_INTERMEDIATE_RESPONSE = "done-with-intermediate-response";
 
+    private final PriorityBlockingQueue<BallRequest> mNetworkQueue;
+
     /**
      * Used for posting responses, typically to the main thread.
      */
@@ -50,7 +53,7 @@ public class BallExecutorDelivery implements BallResponseDelivery {
      *
      * @param handler {@link android.os.Handler} to post responses on
      */
-    public BallExecutorDelivery(final Handler handler) {
+    public BallExecutorDelivery(final Handler handler, PriorityBlockingQueue<BallRequest> networkQueue) {
         // Make an Executor that just wraps the handler.
         mResponsePoster = new Executor() {
             @Override
@@ -58,6 +61,7 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                 handler.post(command);
             }
         };
+        mNetworkQueue = networkQueue;
     }
 
     /**
@@ -68,19 +72,27 @@ public class BallExecutorDelivery implements BallResponseDelivery {
      */
     public BallExecutorDelivery(Executor executor) {
         mResponsePoster = executor;
+        mNetworkQueue = null;
     }
 
     @Override
     public void postResponse(BallRequest<?> request, BallResponse<?> response) {
-        postResponse(request, response, null);
+        request.addMarker(MARKER_POST_RESPONSE);
+        mResponsePoster.execute(new ResponseDeliveryRunnable(request, response, null));
     }
 
     @Override
-    public void postResponse(BallRequest<?> request, BallResponse<?> response, Runnable runnable) {
-        //request.markDelivered();
+    public void postResponseAndForwardToNetwork(BallRequest<?> request, BallResponse<?> response) {
         request.addMarker(MARKER_POST_RESPONSE);
-        mResponsePoster.execute(new ResponseDeliveryRunnable(request, response, runnable));
+        mResponsePoster.execute(new ResponseDeliveryRunnable(request, response, mNetworkQueue));
     }
+//
+//    @Override
+//    public void postResponse(BallRequest<?> request, BallResponse<?> response, Runnable runnable) {
+//        //request.markDelivered();
+//        request.addMarker(MARKER_POST_RESPONSE);
+//        mResponsePoster.execute(new ResponseDeliveryRunnable(request, response, runnable));
+//    }
 
     @Override
     public void postError(BallRequest<?> request, VolleyError error) {
@@ -92,25 +104,27 @@ public class BallExecutorDelivery implements BallResponseDelivery {
     @Override
     public void postEmptyIntermediateResponse(BallRequest request, BallResponse.ResponseSource responseSource) {
         request.addMarker(MARKER_POST_EMPTY_INTERMEDIATE_RESPONSE);
-        mResponsePoster.execute(new EmptyIntermediateDeliveryRunnable(request, responseSource));
+        mResponsePoster.execute(new EmptyIntermediateDeliveryRunnable(request, responseSource, mNetworkQueue));
     }
 
     protected static class EmptyIntermediateDeliveryRunnable implements Runnable {
         protected final BallRequest mRequest;
         protected final BallResponse.ResponseSource mResponseSource;
+        protected final PriorityBlockingQueue<BallRequest> mNetworkQueue;
 
-        private EmptyIntermediateDeliveryRunnable(BallRequest request, BallResponse.ResponseSource responseSource) {
+        private EmptyIntermediateDeliveryRunnable(BallRequest request, BallResponse.ResponseSource responseSource, PriorityBlockingQueue<BallRequest> networkQueue) {
             mRequest = request;
             mResponseSource = responseSource;
+            mNetworkQueue = networkQueue;
         }
 
         @Override
         public void run() {
-            if (mRequest.isFinished() || mRequest.isIntermediateResponseDelivered()) {
+            if (mRequest.isFinished() || mRequest.areAllIntermediateResponsesDelivered()) {
                 return;
             }
 
-            mRequest.setIntermediateResponseDelivered(true);
+            mRequest.markIntermediateResponseDelivered(mResponseSource);
 
             // final response already delivered,
             if (mRequest.isFinalResponseDelivered()) {
@@ -121,6 +135,11 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                 mRequest.deliverError(mRequest.getFinalResponseError());
                 mRequest.finish(MARKER_DONE_WITH_INTERMEDIATE_EMPTY_RESPONSE); //TODO: ADD SOURCE ?
             }
+
+            // else forward network if need
+            else if (mNetworkQueue != null) {
+                mNetworkQueue.put(mRequest);
+            }
         }
     }
 
@@ -129,12 +148,12 @@ public class BallExecutorDelivery implements BallResponseDelivery {
     protected static class ResponseDeliveryRunnable implements Runnable {
         protected final BallRequest mRequest;
         protected final BallResponse mResponse;
-        protected final Runnable mRunnable;
+        protected final PriorityBlockingQueue<BallRequest> mNetworkQueue;
 
-        public ResponseDeliveryRunnable(BallRequest request, BallResponse response, Runnable runnable) {
+        public ResponseDeliveryRunnable(BallRequest request, BallResponse response, PriorityBlockingQueue<BallRequest> networkQueue) {
             mRequest = request;
             mResponse = response;
-            mRunnable = runnable;
+            mNetworkQueue = networkQueue;
         }
 
         @SuppressWarnings("unchecked")
@@ -154,12 +173,13 @@ public class BallExecutorDelivery implements BallResponseDelivery {
 
             // intermediate response from local or cache
             if (mResponse.isIntermediate()) {
-                if (mRequest.isIntermediateResponseDelivered()) {
+                if (mRequest.isIntermediateResponseDeliveredWithSuccess()) {
                     mRequest.addMarker(MARKER_INTERMEDIATE_RESPONSE_ALREADY_DELIVERED);
                     return;
                 }
 
-                mRequest.setIntermediateResponseDelivered(true);
+                mRequest.setIntermediateResponseDeliveredWithSuccess(true);
+                mRequest.markIntermediateResponseDelivered(mResponse.getResponseSource());
 
                 // errors come only from network response, we don't have error management for local or cache responses
                 if (!mResponse.isSuccess()) {
@@ -178,8 +198,8 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                     mRequest.deliverError(mRequest.getFinalResponseError());
                     mRequest.finish(MARKER_DONE_WITH_INTERMEDIATE_RESPONSE);
                 } else {
-                    if (mRunnable != null) {
-                        mRunnable.run();
+                    if (mNetworkQueue != null) {
+                        mNetworkQueue.put(mRequest);
                     }
                 }
             }
@@ -197,7 +217,7 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                     }
 
                 } else {
-                    if (mRequest.isIntermediateResponseDelivered()) {
+                    if (mRequest.areAllIntermediateResponsesDelivered()) {
                         mRequest.deliverError(mResponse.getError());
                     } else {
                         // let the request continue if network response failed and there is a local request processing

@@ -20,13 +20,8 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.android.volley.Cache;
-import com.android.volley.CacheDispatcher;
-import com.android.volley.ExecutorDelivery;
 import com.android.volley.Network;
-import com.android.volley.NetworkDispatcher;
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.ResponseDelivery;
 import com.android.volley.VolleyLog;
 import com.siu.android.volleyball.ball.BallExecutorDelivery;
 import com.siu.android.volleyball.local.LocalDispatcher;
@@ -42,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A request dispatch queue with a thread pool of dispatchers.
- *
+ * <p/>
  * Calling {@link #add(BallRequest)} will enqueue the given Request for dispatch,
  * resolving from either cache or network on a worker thread, and then delivering
  * a parsed response on the main thread.
@@ -50,17 +45,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("rawtypes")
 public class BallRequestQueue { //extends RequestQueue {
 
-    /** Used for generating monotonically-increasing sequence numbers for requests. */
+    /**
+     * Used for generating monotonically-increasing sequence numbers for requests.
+     */
     private AtomicInteger mSequenceGenerator = new AtomicInteger();
 
     /**
      * Staging area for requests that already have a duplicate request in flight.
-     *
+     * <p/>
      * <ul>
-     *     <li>containsKey(cacheKey) indicates that there is a request in flight for the given cache
-     *          key.</li>
-     *     <li>get(cacheKey) returns waiting requests for the given cache key. The in flight request
-     *          is <em>not</em> contained in that list. Is null if no requests are staged.</li>
+     * <li>containsKey(cacheKey) indicates that there is a request in flight for the given cache
+     * key.</li>
+     * <li>get(cacheKey) returns waiting requests for the given cache key. The in flight request
+     * is <em>not</em> contained in that list. Is null if no requests are staged.</li>
      * </ul>
      */
     private final Map<String, Queue<BallRequest>> mWaitingRequests =
@@ -73,33 +70,49 @@ public class BallRequestQueue { //extends RequestQueue {
      */
     private final Set<BallRequest> mCurrentRequests = new HashSet<BallRequest>();
 
-    /** The cache triage queue. */
+    /**
+     * The cache triage queue.
+     */
     private final PriorityBlockingQueue<BallRequest> mCacheQueue =
-        new PriorityBlockingQueue<BallRequest>();
+            new PriorityBlockingQueue<BallRequest>();
 
-    /** The queue of requests that are actually going out to the network. */
+    /**
+     * The queue of requests that are actually going out to the network.
+     */
     private final PriorityBlockingQueue<BallRequest> mNetworkQueue =
-        new PriorityBlockingQueue<BallRequest>();
+            new PriorityBlockingQueue<BallRequest>();
 
     private final PriorityBlockingQueue<BallRequest> mLocalQueue =
             new PriorityBlockingQueue<BallRequest>();
 
-    /** Number of network request dispatcher threads to start. */
+    /**
+     * Number of network request dispatcher threads to start.
+     */
     private static final int DEFAULT_NETWORK_THREAD_POOL_SIZE = 4;
 
-    /** Cache interface for retrieving and storing respones. */
+    /**
+     * Cache interface for retrieving and storing respones.
+     */
     private final Cache mCache;
 
-    /** Network interface for performing requests. */
+    /**
+     * Network interface for performing requests.
+     */
     private final Network mNetwork;
 
-    /** Response delivery mechanism. */
+    /**
+     * Response delivery mechanism.
+     */
     private final BallResponseDelivery mDelivery;
 
-    /** The network dispatchers. */
+    /**
+     * The network dispatchers.
+     */
     private BallNetworkDispatcher[] mDispatchers;
 
-    /** The cache dispatcher. */
+    /**
+     * The cache dispatcher.
+     */
     private BallCacheDispatcher mCacheDispatcher;
 
     private LocalDispatcher mLocalDispatcher;
@@ -107,35 +120,21 @@ public class BallRequestQueue { //extends RequestQueue {
     /**
      * Creates the worker pool. Processing will not begin until {@link #start()} is called.
      *
-     * @param cache A Cache to use for persisting responses to disk
-     * @param network A Network interface for performing HTTP requests
-     * @param threadPoolSize Number of network dispatcher threads to create
-     * @param delivery A ResponseDelivery interface for posting responses and errors
-     */
-    public BallRequestQueue(Cache cache, Network network, int threadPoolSize,
-                            BallResponseDelivery delivery) {
-        mCache = cache;
-        mNetwork = network;
-        mDispatchers = new BallNetworkDispatcher[threadPoolSize];
-        mDelivery = delivery;
-    }
-
-    /**
-     * Creates the worker pool. Processing will not begin until {@link #start()} is called.
-     *
-     * @param cache A Cache to use for persisting responses to disk
-     * @param network A Network interface for performing HTTP requests
+     * @param cache          A Cache to use for persisting responses to disk
+     * @param network        A Network interface for performing HTTP requests
      * @param threadPoolSize Number of network dispatcher threads to create
      */
     public BallRequestQueue(Cache cache, Network network, int threadPoolSize) {
-        this(cache, network, threadPoolSize,
-                new BallExecutorDelivery(new Handler(Looper.getMainLooper())));
+        mCache = cache;
+        mNetwork = network;
+        mDispatchers = new BallNetworkDispatcher[threadPoolSize];
+        mDelivery = new BallExecutorDelivery(new Handler(Looper.getMainLooper()), mNetworkQueue);
     }
 
     /**
      * Creates the worker pool. Processing will not begin until {@link #start()} is called.
      *
-     * @param cache A Cache to use for persisting responses to disk
+     * @param cache   A Cache to use for persisting responses to disk
      * @param network A Network interface for performing HTTP requests
      */
     public BallRequestQueue(Cache cache, Network network) {
@@ -205,6 +204,7 @@ public class BallRequestQueue { //extends RequestQueue {
 
     /**
      * Cancels all requests in this queue for which the given filter applies.
+     *
      * @param filter The filtering function to use
      */
     public void cancelAll(RequestFilter filter) {
@@ -235,6 +235,7 @@ public class BallRequestQueue { //extends RequestQueue {
 
     /**
      * Adds a Request to the dispatch queue.
+     *
      * @param request The request to service
      * @return The passed-in request
      */
@@ -249,38 +250,57 @@ public class BallRequestQueue { //extends RequestQueue {
         request.setSequence(getSequenceNumber());
         request.addMarker("add-to-queue");
 
-        if(request.shouldProcessLocal()) {
-            mLocalQueue.add(request);
+        // nothing
+        if (!request.shouldProcessLocal() && !request.shouldProcessNetwork()) {
+            return request;
         }
 
-        // If the request is uncacheable, skip the cache queue and go straight to the network.
-        if (!request.shouldCache()) {
+        // local only
+        if (request.shouldProcessLocal() && !request.shouldProcessNetwork()) {
+            mLocalQueue.add(request);
+            return request;
+        }
+
+        // network
+
+        // no cache no local
+        if (!request.shouldCache() && !request.shouldProcessLocal()) {
             mNetworkQueue.add(request);
             return request;
         }
 
-        // Insert request into stage if there's already a request with the same cache key in flight.
-        synchronized (mWaitingRequests) {
-            String cacheKey = request.getCacheKey();
-            if (mWaitingRequests.containsKey(cacheKey)) {
-                // There is already a request in flight. Queue up.
-                Queue<BallRequest> stagedRequests = mWaitingRequests.get(cacheKey);
-                if (stagedRequests == null) {
-                    stagedRequests = new LinkedList<BallRequest>();
-                }
-                stagedRequests.add(request);
-                mWaitingRequests.put(cacheKey, stagedRequests);
-                if (VolleyLog.DEBUG) {
-                    VolleyLog.v("Request for cacheKey=%s is in flight, putting on hold.", cacheKey);
-                }
-            } else {
-                // Insert 'null' queue for this cacheKey, indicating there is now a request in
-                // flight.
-                mWaitingRequests.put(cacheKey, null);
-                mCacheQueue.add(request);
-            }
-            return request;
+        // at this point request processes either cache or local
+        // adding to network queue will be done from local or cache dispatcher
+        if (request.shouldProcessLocal()) {
+            mLocalQueue.add(request);
         }
+
+        if (request.shouldCache()) {
+            // Insert request into stage if there's already a request with the same cache key in flight.
+            synchronized (mWaitingRequests) {
+                String cacheKey = request.getCacheKey();
+                if (mWaitingRequests.containsKey(cacheKey)) {
+                    // There is already a request in flight. Queue up.
+                    Queue<BallRequest> stagedRequests = mWaitingRequests.get(cacheKey);
+                    if (stagedRequests == null) {
+                        stagedRequests = new LinkedList<BallRequest>();
+                    }
+                    stagedRequests.add(request);
+                    mWaitingRequests.put(cacheKey, stagedRequests);
+                    if (VolleyLog.DEBUG) {
+                        VolleyLog.v("Request for cacheKey=%s is in flight, putting on hold.", cacheKey);
+                    }
+                } else {
+                    // Insert 'null' queue for this cacheKey, indicating there is now a request in
+                    // flight.
+                    mWaitingRequests.put(cacheKey, null);
+                    mCacheQueue.add(request);
+                }
+
+            }
+        }
+
+        return request;
     }
 
 //    public Request add(Request request) {
@@ -290,9 +310,9 @@ public class BallRequestQueue { //extends RequestQueue {
     /**
      * Called from {@link com.android.volley.Request#finish(String)}, indicating that processing of the given request
      * has finished.
-     *
+     * <p/>
      * <p>Releases waiting requests for <code>request.getCacheKey()</code> if
-     *      <code>request.shouldCache()</code>.</p>
+     * <code>request.shouldCache()</code>.</p>
      */
     protected void finish(Request request) {
         // Remove from the set of requests currently being processed.
