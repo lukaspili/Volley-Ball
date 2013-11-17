@@ -8,9 +8,15 @@ import com.siu.android.volleyball.exception.BallException;
  */
 public abstract class SingleResponseListener<T> implements ResponseListener<T> {
 
+    /**
+     * Can happen when the response is soft cached
+     *
+     * @param response
+     * @param responseSource
+     */
     @Override
     public final void onIntermediateResponse(T response, BallResponse.ResponseSource responseSource) {
-        throw new BallException("Single response listener does not have intermediate response");
+        onResponse(response);
     }
 
     @Override
@@ -18,10 +24,16 @@ public abstract class SingleResponseListener<T> implements ResponseListener<T> {
         onResponse(response);
     }
 
+    /**
+     * Can happen when the response is soft cached. Maybe ?
+     *
+     * @param responseSource
+     */
     @Override
     public final void onFinalResponseIdenticalToIntermediate(BallResponse.ResponseSource responseSource) {
-        throw new BallException("Single response listener does not have intermediate response");
+
     }
 
+    //TODO: add response source because it can still be soft cached response
     public abstract void onResponse(T response);
 }

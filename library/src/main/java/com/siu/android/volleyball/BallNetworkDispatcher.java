@@ -155,7 +155,12 @@ public class BallNetworkDispatcher extends Thread {
 
                 // save to local if applicable
                 if (request.shouldProcessLocal()) {
-                    request.getLocalRequestProcessor().saveLocalResponse(response.getResult());
+                    if (response.getResult() == null) {
+                        request.addMarker("network-abort-save-to-local-null-response");
+                    } else {
+                        request.addMarker("network-save-response-to-local");
+                        request.getLocalRequestProcessor().saveLocalResponse(response.getResult());
+                    }
                 }
 
             } catch (VolleyError volleyError) {

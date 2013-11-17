@@ -214,7 +214,7 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                 mRequest.setFinalResponseDelivered(true);
 
                 if (mResponse.isSuccess()) {
-                    if (mResponse.isIdentical()) {
+                    if (mResponse.isIdentical() && mRequest.isIntermediateResponseDelivered()) {
                         // so far identical can only come from network, but it should be able to come from cache as well
                         mRequest.deliverIdenticalFinalResponse(mResponse.getResponseSource());
                     } else {

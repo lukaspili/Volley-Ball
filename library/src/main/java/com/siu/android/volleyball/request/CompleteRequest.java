@@ -13,8 +13,6 @@ import com.siu.android.volleyball.response.ResponseListener;
  */
 public abstract class CompleteRequest<T> extends BallRequest<T> {
 
-    protected ResponseListener mResponseListener;
-
     public CompleteRequest(int method, String url, Response.ErrorListener errorListener) {
         super(method, url, errorListener);
     }
