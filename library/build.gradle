@@ -3,24 +3,20 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.5.+'
+        classpath 'com.android.tools.build:gradle:0.6.+'
     }
 }
 
 apply plugin: 'android-library'
-apply plugin: 'maven'
-
-group 'com.siu.android.volleyball'
-archivesBaseName = 'volleyball'
-version 0.1
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 android {
     compileSdkVersion 18
-    buildToolsVersion "18.0.1"
+    buildToolsVersion "19.0.0"
 
     defaultConfig {
 
@@ -43,8 +39,13 @@ configurations {
     unitTestRuntime.extendsFrom unitTestCompile
 }
 
+configurations.all {
+    // check for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
 dependencies {
-    compile project(':library:volley')
+    compile group: 'com.google.volley', name:'volley', version:'1.0.0-SNAPSHOT', changing: true
     compile 'commons-io:commons-io:2.4'
 
     unitTestCompile files("$project.buildDir/classes/release")
@@ -68,45 +69,3 @@ task unitTest(type: Test, dependsOn: assemble) {
     classpath = project.sourceSets.unitTest.runtimeClasspath
 }
 check.dependsOn unitTest
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository url: 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath
-        }
-    }
-}
-task install(dependsOn: uploadArchives)
-
-
-//apply plugin: 'maven-publish'
-//
-
-//evaluationDependsOn(':library:volley')
-//task sourceJar(type: Jar) {
-//    println getRootProject().subprojects.findAll{it.name == 'volleyy'}.name
-//
-//    evaluationDependsOn(':library:volley')
-//    from android.sourceSets.main.java
-//    from getRootProject().subprojects.findAll{it.name == 'volley'}.sourceSets.java
-//    classifier "with-volley"
-//}
-//
-//artifacts {
-//    archives(sourceJar)
-//}
-
-
-
-//
-//publishing {
-//    publications {
-//        maven(MavenPublication) {
-//            groupId 'org.gradle.sample'
-//            artifactId 'project1-sample'
-//            version '1.1'
-//
-//            artifact 'test'
-//        }
-//    }
-//}

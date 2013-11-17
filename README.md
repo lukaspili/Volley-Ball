@@ -307,6 +307,15 @@ Current version of the Volley sub module: 4c2fe13.
 You can run the tests with the command line: `./gradlew library:unitTest`
 
 
+### Deployment
+
+Volleyball relies on Volley library as jar dependency.
+You can deploy one using this clone of the Google Volley repository: https://github.com/lukaspili/Android-Volley-gradle-library
+Then run: `mvn clean install` to deploy the volley jar in your local or remote repository.
+
+
+
+
 
 ## TODO
 

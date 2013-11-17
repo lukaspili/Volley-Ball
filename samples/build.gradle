@@ -10,6 +10,7 @@ apply plugin: 'android'
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 android {
@@ -22,8 +23,9 @@ android {
 }
 
 dependencies {
+    compile project(':library')
+
     compile 'com.android.support:support-v4:18.0.0'
     compile 'com.squareup.okhttp:okhttp:1.2.0'
     compile 'com.google.code.gson:gson:2.2.4'
-    compile project(':library')
 }
