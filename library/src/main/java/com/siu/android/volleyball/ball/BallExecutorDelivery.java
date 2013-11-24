@@ -222,15 +222,16 @@ public class BallExecutorDelivery implements BallResponseDelivery {
                     }
 
                 } else {
-                    if (mRequest.isIntermediateResponseDelivered()) {
-                        mRequest.deliverError(mResponse.getError());
-                    } else {
+                    // request has intermediate response that has not been delivered yet
+                    if (mRequest.canHaveIntermediateResponse() && !mRequest.isIntermediateResponseDelivered()) {
                         // let the request continue if network response failed and there is a local request processing
                         // this scenario will happen if there is no cache policy and the intermediate response is delivered only from local
                         // processing that takes more time than the network response to be delivered
                         mRequest.addMarker(MARKER_ERROR_IN_FINAL_RESPONSE_LET_INTERMEDIATE_CONTINUE);
                         mRequest.setFinalResponseError(mResponse.getError());
                         return;
+                    } else {
+                        mRequest.deliverError(mResponse.getError());
                     }
                 }
 

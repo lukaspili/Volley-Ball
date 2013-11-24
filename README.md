@@ -336,3 +336,7 @@ Then run: `mvn clean install` to deploy the volley jar in your local or remote r
 - local and network only request
 - marker log constant methods
 - local request final ?
+
+
+- add shouldCache NO for local request
+- add shouldCache / softcache for other requests

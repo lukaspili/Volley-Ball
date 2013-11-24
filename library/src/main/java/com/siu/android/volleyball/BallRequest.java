@@ -217,6 +217,15 @@ public abstract class BallRequest<T> extends Request<T> {
         return shouldProcessLocal() && shouldProcessNetwork();
     }
 
+    /**
+     * Only request with both local and networking processing have intermediate response aspect
+     *
+     * @return true if the request can have intermediate response, false otherwise
+     */
+    public boolean canHaveIntermediateResponse() {
+        return shouldProcessLocal() && shouldProcessNetwork();
+    }
+
 
 
     /* Gets and sets */
