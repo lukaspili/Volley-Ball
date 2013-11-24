@@ -10,6 +10,7 @@ import com.siu.android.volleyball.request.NetworkRequest;
 import com.siu.android.volleyball.response.SingleResponseListener;
 import com.siu.android.volleyball.samples.Application;
 import com.siu.android.volleyball.samples.util.SimpleLogger;
+import com.siu.android.volleyball.samples.volley.request.SampleErrorNetworkRequest;
 import com.siu.android.volleyball.samples.volley.request.SampleNetworkRequest;
 
 public class NetworkRequestActivity extends Activity {
@@ -27,19 +28,34 @@ public class NetworkRequestActivity extends Activity {
     }
 
     private void startRequest() {
-        NetworkRequest request = new SampleNetworkRequest(Request.Method.GET, "some.url.com", new SingleResponseListener<String>() {
+        NetworkRequest request = new SampleNetworkRequest(Request.Method.GET, "http://some.url1.com", new SingleResponseListener<String>() {
             @Override
             public void onResponse(String response) {
-                SimpleLogger.d("response from request %s", response);
+                SimpleLogger.d("response from request 1: %s", response);
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                SimpleLogger.d("error from request %s", error.getMessage());
+                SimpleLogger.d("error from request 1: %s", error.getMessage());
             }
         }
         );
-
         Application.getRequestQueue().add(request);
+        SimpleLogger.d("Start request 1");
+
+        request = new SampleErrorNetworkRequest(Request.Method.GET, "http://some.url2.com", new SingleResponseListener<String>() {
+            @Override
+            public void onResponse(String response) {
+                SimpleLogger.d("response from request 2: %s", response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                SimpleLogger.d("error from request 2: %s", error.getMessage());
+            }
+        }
+        );
+        Application.getRequestQueue().add(request);
+        SimpleLogger.d("Start request 2");
     }
 }
